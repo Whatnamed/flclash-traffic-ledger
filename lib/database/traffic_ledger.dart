@@ -232,9 +232,14 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
   /// 若账本设置开启自动周期且当前时刻已跨过刷新边界，则结束旧周期并
   /// 创建新周期。返回新创建的周期（若发生了切换），否则 null。
   ///
-  /// 多边界追赶：当应用长时间未运行、跨过多个刷新边界时，直接切换到
-  /// 当前时刻所属的周期（cycleStartFor(now)），不创建中间空周期。
-  /// 旧周期 endAt = 当前所属周期开始时间，无空隙、无重叠。
+  /// 多边界追赶语义（Stage 2.3 修正）：
+  /// - 旧活动周期在它遇到的**第一个真实刷新边界**结束，不为了消灭空档
+  ///   而跨越已错过的真实刷新边界；
+  /// - 中间错过的空周期不创建（允许历史时间线上存在"未采集/未运行"空档）；
+  /// - 新活动周期从当前时刻所属周期开始（cycleStartFor(now)）；
+  /// - 不允许重叠，新周期 startAt = currentCycleStart；
+  /// - 整个"结束旧周期 + 创建当前周期"在一个数据库事务中执行；
+  /// - 重复调用幂等：若活动周期已对齐当前所属周期，不再创建。
   ///
   /// 应用未运行时不执行；下次 ensureActivePeriod 时会补做切换。
   Future<TrafficBillingPeriod?> maybeAutoCycleSwitch({
@@ -247,18 +252,38 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
     if (active == null) return null;
     final currentStart =
         DateTime.fromMillisecondsSinceEpoch(active.startAt);
-    // 计算当前时刻所属周期的开始时间。
+    // 当前时刻所属周期的开始时间。
     final currentCycleStart = BillingCycleCalculator.cycleStartFor(
       moment,
       settings.billingCycleDay,
     );
     // 若当前周期开始时间不晚于旧周期开始时间，则仍在旧周期内，无需切换。
     if (!currentCycleStart.isAfter(currentStart)) return null;
-    // 切换到当前所属周期。旧周期 endAt = currentCycleStart（无空隙、无重叠）。
-    return startNewPeriod(
-      label: active.label,
-      startAt: currentCycleStart,
+    // 旧周期遇到的第一个真实刷新边界。
+    final firstMissedBoundary = BillingCycleCalculator.nextCycleStart(
+      currentStart,
+      settings.billingCycleDay,
+      settings.billingCycleHour,
     );
+    return transaction(() async {
+      // 1. 旧周期结束于它遇到的第一个真实刷新边界（而非 currentCycleStart）。
+      await (trafficBillingPeriods.update()
+            ..where((t) => t.id.equals(active.id)))
+          .write(TrafficBillingPeriodsCompanion(
+              endAt: Value(firstMissedBoundary.millisecondsSinceEpoch)));
+      // 2. 不创建 firstMissedBoundary 到 currentCycleStart 之间的空周期。
+      // 3. 创建新活动周期，startAt = currentCycleStart。
+      final id = await into(trafficBillingPeriods).insert(
+            TrafficBillingPeriodsCompanion.insert(
+              label: Value(active.label),
+              startAt: currentCycleStart.millisecondsSinceEpoch,
+              createdAt: moment.millisecondsSinceEpoch,
+            ),
+          );
+      return (trafficBillingPeriods.select()
+            ..where((t) => t.id.equals(id)))
+          .getSingle();
+    });
   }
 
   /// 清除流量历史：删除所有周期和小时聚合记录，**保留**节点倍率手动覆盖
