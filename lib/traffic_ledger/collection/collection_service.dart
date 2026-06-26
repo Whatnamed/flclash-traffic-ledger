@@ -1,12 +1,14 @@
 import 'dart:async';
 
 import 'package:fl_clash/common/common.dart';
+import 'package:fl_clash/database/database.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/traffic_ledger/billing_period_manager.dart';
 import 'package:fl_clash/traffic_ledger/collection/hourly_bucket.dart';
 import 'package:fl_clash/traffic_ledger/collection/models.dart';
 import 'package:fl_clash/traffic_ledger/collection/reconciler.dart';
 import 'package:fl_clash/traffic_ledger/collection/sample_source.dart';
+import 'package:fl_clash/traffic_ledger/collection/traffic_diagnostics.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 
 /// 后台流量采集服务。仅在 FLClash 应用进程中运行，负责：
@@ -114,6 +116,8 @@ class TrafficCollectionService {
     _flushTimer?.cancel();
     _samplingTimer = Timer.periodic(_samplingInterval, (_) => _tick());
     _flushTimer = Timer.periodic(_flushInterval, (_) => _tickFlush());
+    TrafficDiagnostics.instance
+        .recordLifecycle('start gen=$_generation');
     commonPrint.log(
       'TrafficCollectionService started (generation=$_generation)',
     );
@@ -137,12 +141,21 @@ class TrafficCollectionService {
     _flushTimer?.cancel();
     _flushTimer = null;
     commonPrint.log('TrafficCollectionService pauseAndFlush');
+    TrafficDiagnostics.instance.recordLifecycle('pauseAndFlush begin');
     // 等待在飞的采样完成（避免数据写入已 drain 的 batch）。
     // 这里用轮询而非 Completer，因为 _tick 内部异常可能导致信号丢失。
+    final waitSw = TrafficDiagnostics.instance.enabled
+        ? (Stopwatch()..start())
+        : null;
     while (_samplingInFlight) {
       await Future<void>.delayed(const Duration(milliseconds: 1));
     }
+    if (waitSw != null) {
+      TrafficDiagnostics.instance
+          .recordPauseAndFlushWait(waitSw.elapsedMilliseconds);
+    }
     await _flush();
+    TrafficDiagnostics.instance.recordLifecycle('pauseAndFlush end');
   }
 
   /// 最终 flush 并释放资源。应用退出前调用。
@@ -153,17 +166,85 @@ class TrafficCollectionService {
     _samplingTimer = null;
     _flushTimer?.cancel();
     _flushTimer = null;
+    TrafficDiagnostics.instance.recordLifecycle('flushAndDispose begin');
     while (_samplingInFlight) {
       await Future<void>.delayed(const Duration(milliseconds: 1));
     }
     await _flush();
     _disposed = true;
+    // Stage 3.2: 应用退出前输出诊断汇总（仅 debug）。
+    final summary = TrafficDiagnostics.instance.summarize();
+    if (summary != 'diagnostics disabled (release)') {
+      commonPrint.log('TrafficCollectionService diagnostics:\n$summary');
+    }
+    TrafficDiagnostics.instance.recordLifecycle('flushAndDispose end');
     commonPrint.log('TrafficCollectionService disposed');
   }
 
   /// 手动触发一次 flush（不影响定时器，不影响生命周期）。
   /// 用于计费周期手动切换等场景。
   Future<void> flush() => _flush();
+
+  /// 用户手动"新建计费周期"的协调入口（Stage 3.2）。
+  ///
+  /// **UI 不应**分别调用 `flush()` + `billingPeriodManager.createNewPeriod()`，
+  /// 因为两步之间可能有新的 tick 进入，导致旧样本写入新周期或新样本写回旧周期。
+  ///
+  /// 本方法串行完成：
+  /// 1. 取消采样定时器（阻止新 tick）；
+  /// 2. 等待在飞采样结束（避免 race）；
+  /// 3. flush 当前 pending batch（旧周期数据归旧周期）；
+  /// 4. 调用 [BillingPeriodManager.createNewPeriod] 创建新周期；
+  /// 5. 清理 period cache（_cachedPeriodId/CheckHour），强制下次采样重新解析；
+  /// 6. 递增 generation（让 reconciler 在下次采样时仅建立新基线，不产生增量）；
+  /// 7. 恢复采样定时器（若服务原本在运行）。
+  ///
+  /// 不清零历史；旧周期数据保留。过程不可让旧样本写入新周期。
+  /// [label] / [startAt] 透传给 [BillingPeriodManager.createNewPeriod]。
+  Future<TrafficBillingPeriod> createNewBillingPeriod({
+    String? label,
+    DateTime? startAt,
+  }) async {
+    if (_disposed) {
+      throw StateError('createNewBillingPeriod called after dispose');
+    }
+    final wasRunning = _samplingTimer != null;
+    // 1. 取消采样定时器。
+    _samplingTimer?.cancel();
+    _samplingTimer = null;
+    _flushTimer?.cancel();
+    _flushTimer = null;
+    TrafficDiagnostics.instance.recordLifecycle('createNewBillingPeriod begin');
+    try {
+      // 2. 等待在飞采样。
+      while (_samplingInFlight) {
+        await Future<void>.delayed(const Duration(milliseconds: 1));
+      }
+      // 3. flush 当前 pending batch（旧样本归旧周期）。
+      await _flush();
+      // 4. 创建新周期。
+      final newPeriod = await _periodManager.createNewPeriod(
+        label: label,
+        startAt: startAt,
+      );
+      // 5. 清理 period cache，强制下次采样重新解析到新周期。
+      _cachedPeriodId = null;
+      _cachedPeriodCheckHour = null;
+      // 6. 递增 generation：reconciler 检测到变化后仅建立新基线，
+      //    不把旧核心累计字节当成增量。
+      _generation++;
+      TrafficDiagnostics.instance.recordLifecycle(
+        'createNewBillingPeriod end gen=$_generation periodId=${newPeriod.id}',
+      );
+      return newPeriod;
+    } finally {
+      // 7. 若服务原本在运行，恢复采样定时器。
+      if (wasRunning && !_disposed) {
+        _samplingTimer = Timer.periodic(_samplingInterval, (_) => _tick());
+        _flushTimer = Timer.periodic(_flushInterval, (_) => _tickFlush());
+      }
+    }
+  }
 
   /// 手动触发一次采样（测试用）。不依赖定时器。
   @visibleForTesting
@@ -183,6 +264,8 @@ class TrafficCollectionService {
     // 互斥：同一时刻最多一个采样在执行。
     if (_samplingInFlight) return;
     _samplingInFlight = true;
+    final diag = TrafficDiagnostics.instance;
+    final sw = diag.enabled ? (Stopwatch()..start()) : null;
     try {
       // 捕获当前 generation，await 后用于检测是否过期。
       final tickGeneration = _generation;
@@ -256,6 +339,9 @@ class TrafficCollectionService {
         logLevel: LogLevel.error,
       );
     } finally {
+      if (sw != null) {
+        diag.recordTick(sw.elapsedMilliseconds);
+      }
       _samplingInFlight = false;
     }
   }

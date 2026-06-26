@@ -4,6 +4,7 @@ import 'package:fl_clash/traffic_ledger/collection/app_identifier.dart';
 import 'package:fl_clash/traffic_ledger/collection/domain_normalizer.dart';
 import 'package:fl_clash/traffic_ledger/collection/models.dart';
 import 'package:fl_clash/traffic_ledger/collection/reconciler.dart';
+import 'package:fl_clash/traffic_ledger/collection/traffic_diagnostics.dart';
 import 'package:fl_clash/traffic_ledger/multiplier_parser.dart';
 import 'package:fl_clash/traffic_ledger/node_multiplier_service.dart';
 
@@ -47,11 +48,24 @@ class CoreControllerSampleSource implements TrafficSampleSource {
   Future<TrafficSample?> collect({DateTime? now}) async {
     try {
       // Stage 3.1: 先连接、后总代理，避免假 overflow。
+      // Stage 3.2: 诊断计时（kDebugMode 下生效，release 编译期消除）。
+      final diag = TrafficDiagnostics.instance;
+      final sw = diag.enabled ? (Stopwatch()..start()) : null;
       final connections = await _controller.getConnections();
+      final t1 = sw?.elapsedMilliseconds ?? 0;
+      sw?.reset();
       final totalTraffic = await _controller.getTotalTraffic(true);
+      final t2 = sw?.elapsedMilliseconds ?? 0;
       // observedAt 在两次读取之后记录，代表"采样观察时刻"。
       // 由调用方传入的 now 优先（测试可控时钟），否则用系统时钟。
       final observedAt = now ?? DateTime.now();
+      if (diag.enabled) {
+        diag.recordCollection(
+          getConnectionsMs: t1,
+          getTotalTrafficMs: t2,
+          rawConnections: connections,
+        );
+      }
       return TrafficSample(
         observedAt: observedAt,
         totalProxyUp: totalTraffic.up.toInt(),

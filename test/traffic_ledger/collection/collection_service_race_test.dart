@@ -472,6 +472,128 @@ void main() {
       expect(source.pendingCount, 0);
     });
   });
+
+  group('createNewBillingPeriod 协调入口（Stage 3.2）', () {
+    test('串行完成 flush + 新周期 + generation 递增 + 旧样本不污染新周期', () async {
+      final source = _QueueSampleSource();
+      final service = createServiceWithSource(source);
+
+      // 会话 1：建立基线 + 产生增量。
+      now = DateTime(2026, 6, 27, 10, 0, 0);
+      source.enqueue(_sample(
+        observedAt: now,
+        totalProxyUp: 0,
+        totalProxyDown: 0,
+        connections: const [],
+      ));
+      await service.sampleOnce();
+
+      now = DateTime(2026, 6, 27, 10, 0, 1);
+      source.enqueue(_sample(
+        observedAt: now,
+        totalProxyUp: 1000,
+        totalProxyDown: 1000,
+        connections: const [],
+      ));
+      await service.sampleOnce();
+      expect(service.pendingBucketCount, 1);
+
+      final genBefore = service.generation;
+      final oldPeriod = await periodManager.getActivePeriod();
+      expect(oldPeriod, isNotNull);
+
+      // 调用 createNewBillingPeriod。
+      final newPeriod = await service.createNewBillingPeriod(
+        label: 'manual-test',
+      );
+
+      // 验证：新周期已创建，id 不同。
+      expect(newPeriod.id, isNot(oldPeriod!.id));
+      expect(newPeriod.label, 'manual-test');
+
+      // 验证：generation 递增。
+      expect(service.generation, genBefore + 1);
+
+      // 验证：pending batch 已 flush（旧周期数据归旧周期）。
+      expect(service.pendingBucketCount, 0);
+
+      // 验证：旧周期有数据。
+      final oldStats = await dao.queryHourlyStats(periodId: oldPeriod.id).get();
+      expect(oldStats.fold<int>(0, (s, x) => s + x.bytesUp), 1000);
+
+      // 验证：新周期无数据（尚未采样）。
+      final newStats =
+          await dao.queryHourlyStats(periodId: newPeriod.id).get();
+      expect(newStats, isEmpty);
+    });
+
+    test('createNewBillingPeriod 后旧核心计数不重复入账', () async {
+      final source = _QueueSampleSource();
+      final service = createServiceWithSource(source);
+
+      // 会话 1：基线 + 增量。
+      now = DateTime(2026, 6, 27, 10, 0, 0);
+      source.enqueue(_sample(
+        observedAt: now,
+        totalProxyUp: 0,
+        totalProxyDown: 0,
+        connections: const [],
+      ));
+      await service.sampleOnce();
+
+      now = DateTime(2026, 6, 27, 10, 0, 1);
+      source.enqueue(_sample(
+        observedAt: now,
+        totalProxyUp: 1000,
+        totalProxyDown: 1000,
+        connections: const [],
+      ));
+      await service.sampleOnce();
+
+      // 创建新周期。
+      final newPeriod = await service.createNewBillingPeriod();
+
+      // 新周期首次采样（基线重建，不产生增量）。
+      now = DateTime(2026, 6, 27, 10, 0, 5);
+      source.enqueue(_sample(
+        observedAt: now,
+        totalProxyUp: 1000, // 核心计数未变（核心未重启）
+        totalProxyDown: 1000,
+        connections: const [],
+      ));
+      await service.sampleOnce();
+      await service.flushOnce();
+
+      // 验证：新周期无数据（基线重建不产生增量）。
+      final newStats =
+          await dao.queryHourlyStats(periodId: newPeriod.id).get();
+      expect(newStats, isEmpty);
+    });
+
+    test('createNewBillingPeriod 后服务恢复采样（若原本在运行）', () async {
+      final source = _QueueSampleSource();
+      final service = createServiceWithSource(source);
+      service.start();
+      expect(service.isRunning, true);
+
+      // 基线。
+      now = DateTime(2026, 6, 27, 10, 0, 0);
+      source.enqueue(_sample(
+        observedAt: now,
+        totalProxyUp: 0,
+        totalProxyDown: 0,
+        connections: const [],
+      ));
+      await service.sampleOnce();
+
+      // createNewBillingPeriod 应恢复定时器。
+      await service.createNewBillingPeriod();
+      expect(service.isRunning, true);
+
+      await service.pauseAndFlush();
+      expect(service.isRunning, false);
+    });
+  });
 }
 
 /// 简单队列 fake source（无延迟控制）。
