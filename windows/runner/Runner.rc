@@ -89,6 +89,16 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
+#if defined(FLCLASH_DEV_IDENTITY)
+            VALUE "CompanyName", "com.follow.trafficledger" "\0"
+            VALUE "FileDescription", "FlClash Traffic Ledger (Dev)" "\0"
+            VALUE "FileVersion", VERSION_AS_STRING "\0"
+            VALUE "InternalName", "clash-traffic-ledger-dev" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2025 com.follow. All rights reserved." "\0"
+            VALUE "OriginalFilename", "FlClash.exe" "\0"
+            VALUE "ProductName", "clash-traffic-ledger-dev" "\0"
+            VALUE "ProductVersion", VERSION_AS_STRING "\0"
+#else
             VALUE "CompanyName", "com.follow" "\0"
             VALUE "FileDescription", "FlClash" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
@@ -97,6 +107,7 @@ BEGIN
             VALUE "OriginalFilename", "FlClash.exe" "\0"
             VALUE "ProductName", "clash" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
+#endif
         END
     END
     BLOCK "VarFileInfo"

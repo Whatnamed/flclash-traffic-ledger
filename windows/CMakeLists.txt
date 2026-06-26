@@ -6,6 +6,21 @@ project(FlClash LANGUAGES CXX)
 # the on-disk name of your application.
 set(BINARY_NAME "FlClash")
 
+# Traffic Ledger dev-build identity isolation.
+# When the FLCLASH_DEV_IDENTITY environment variable is set (e.g. "1"), the
+# Windows runner's VERSIONINFO is patched at compile time so the dev build uses
+# a distinct CompanyName / ProductName. This makes path_provider_windows derive
+# a separate application support directory (e.g. com.follow.trafficledger\
+# clash-traffic-ledger-dev) so the dev build cannot read, write, or lock the
+# production FlClash user data at com.follow\clash. Release builds do not set
+# this variable, so the official identity is preserved unchanged.
+if(DEFINED ENV{FLCLASH_DEV_IDENTITY} AND NOT "$ENV{FLCLASH_DEV_IDENTITY}" STREQUAL "")
+  set(FLCLASH_DEV_IDENTITY ON)
+  message(STATUS "FLCLASH_DEV_IDENTITY: ON (dev build identity will be used)")
+else()
+  set(FLCLASH_DEV_IDENTITY OFF)
+endif()
+
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)

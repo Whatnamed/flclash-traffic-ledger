@@ -27,6 +27,14 @@ target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_MINOR=${FLUTT
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_PATCH=${FLUTTER_VERSION_PATCH}")
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_BUILD=${FLUTTER_VERSION_BUILD}")
 
+# Traffic Ledger dev-build identity: pass FLCLASH_DEV_IDENTITY to Runner.rc so
+# the VERSIONINFO block can switch CompanyName / ProductName for dev builds.
+# rc.exe does not inherit target_compile_definitions reliably, so we set the
+# COMPILE_FLAGS on the .rc source directly.
+if(FLCLASH_DEV_IDENTITY)
+  set_source_files_properties("Runner.rc" PROPERTIES COMPILE_FLAGS "/DFLCLASH_DEV_IDENTITY")
+endif()
+
 # Disable Windows macros that collide with C++ standard library functions.
 target_compile_definitions(${BINARY_NAME} PRIVATE "NOMINMAX")
 
