@@ -82,6 +82,14 @@ class TrafficHourlyStats extends Table {
   IntColumn get estimatedBilledBytesDown =>
       integer().withDefault(const Constant(0))();
 
+  /// 上行预计扣量毫字节余数（0–999）或 -1（不可估算）。
+  IntColumn get billedRemainderUp =>
+      integer().withDefault(const Constant(0))();
+
+  /// 下行预计扣量毫字节余数（0–999）或 -1（不可估算）。
+  IntColumn get billedRemainderDown =>
+      integer().withDefault(const Constant(0))();
+
   IntColumn get updatedAt => integer()();
 
   @override
@@ -310,13 +318,15 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
 
   // ---------- 小时聚合流量 ----------
 
-  /// 批量 upsert 小时聚合记录。同主键记录累加 bytesUp/bytesDown 与
-  /// estimatedBilledBytesUp/estimatedBilledBytesDown。
+  /// 批量 upsert 小时聚合记录。同主键记录累加 bytesUp/bytesDown、
+  /// estimatedBilledBytesUp/Down 与 billedRemainderUp/Down。
   /// multiplier 保持首次写入值（展示用途）。updatedAt 刷新为最新。
   /// 入参为 freezed model（DateTime），内部转换为 epoch millis 存储。
   ///
-  /// 调用方（采集服务）负责在构造 [HourlyTrafficStat] 时按
-  /// "本次增量 × 当时有效倍率"计算 estimatedBilledBytes*。
+  /// 余数累加规则（Stage 3 精度方案）：
+  /// - 若任一侧余数为 -1（不可估算），结果余数保持 -1，estimated 不累加。
+  /// - 否则 totalRemainder = existing + incoming，carry = ~/ 1000，
+  ///   estimated += incoming.estimated + carry，remainder = % 1000。
   Future<void> upsertHourlyStats(Iterable<HourlyTrafficStat> stats) async {
     if (stats.isEmpty) return;
     for (final s in stats) {
@@ -345,10 +355,24 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
             multiplier: Value(s.multiplier),
             estimatedBilledBytesUp: Value(s.estimatedBilledBytesUp),
             estimatedBilledBytesDown: Value(s.estimatedBilledBytesDown),
+            billedRemainderUp: Value(s.billedRemainderUp),
+            billedRemainderDown: Value(s.billedRemainderDown),
             updatedAt: updatedAtMs,
           ),
         );
       } else {
+        final (estUp, remUp) = _mergeBilled(
+          existing.estimatedBilledBytesUp,
+          existing.billedRemainderUp,
+          s.estimatedBilledBytesUp,
+          s.billedRemainderUp,
+        );
+        final (estDown, remDown) = _mergeBilled(
+          existing.estimatedBilledBytesDown,
+          existing.billedRemainderDown,
+          s.estimatedBilledBytesDown,
+          s.billedRemainderDown,
+        );
         await (trafficHourlyStats.update()
               ..where((t) =>
                   t.periodId.equals(s.periodId) &
@@ -360,11 +384,10 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
             .write(TrafficHourlyStatsCompanion(
           bytesUp: Value(existing.bytesUp + s.bytesUp),
           bytesDown: Value(existing.bytesDown + s.bytesDown),
-          estimatedBilledBytesUp: Value(
-              existing.estimatedBilledBytesUp + s.estimatedBilledBytesUp),
-          estimatedBilledBytesDown: Value(
-              existing.estimatedBilledBytesDown +
-                  s.estimatedBilledBytesDown),
+          estimatedBilledBytesUp: Value(estUp),
+          estimatedBilledBytesDown: Value(estDown),
+          billedRemainderUp: Value(remUp),
+          billedRemainderDown: Value(remDown),
           updatedAt: Value(updatedAtMs),
         ));
       }
@@ -478,6 +501,8 @@ extension RawTrafficHourlyStatExt on TrafficHourlyStat {
         multiplier: multiplier,
         estimatedBilledBytesUp: estimatedBilledBytesUp,
         estimatedBilledBytesDown: estimatedBilledBytesDown,
+        billedRemainderUp: billedRemainderUp,
+        billedRemainderDown: billedRemainderDown,
         updatedAt: DateTime.fromMillisecondsSinceEpoch(updatedAt),
       );
 }
@@ -508,4 +533,28 @@ extension BillingPeriodCompanionExt on BillingPeriod {
         endAt: Value(endAt?.millisecondsSinceEpoch),
         createdAt: Value(createdAt.millisecondsSinceEpoch),
       );
+}
+
+/// 合并已入库的预计扣量与本次 flush 的增量。
+///
+/// 余数约定：0–999 为正常毫字节余数；-1 为不可估算哨兵。
+/// - 任一侧为 -1 → 结果为 -1，estimated 不累加。
+/// - 否则 totalRemainder = existing + incoming，carry = ~/ 1000，
+///   estimated = existing.estimated + incoming.estimated + carry，
+///   remainder = totalRemainder % 1000。
+(int, int) _mergeBilled(
+  int existingEstimated,
+  int existingRemainder,
+  int incomingEstimated,
+  int incomingRemainder,
+) {
+  if (existingRemainder == -1 || incomingRemainder == -1) {
+    return (-1, -1);
+  }
+  final totalRemainder = existingRemainder + incomingRemainder;
+  final carry = totalRemainder ~/ 1000;
+  return (
+    existingEstimated + incomingEstimated + carry,
+    totalRemainder % 1000,
+  );
 }

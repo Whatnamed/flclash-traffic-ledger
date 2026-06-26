@@ -293,7 +293,9 @@ mixin _$HourlyTrafficStat {
  int get periodId; DateTime get hourStart; String get appIdentifier; String get nodeName; String get domain; String get rule; int get bytesUp; int get bytesDown;/// 首次入账时的倍率快照，仅用于展示。
  double get multiplier;/// 入账时按"本次增量 × 当时有效倍率"累计的预计扣量（上行）。
  int get estimatedBilledBytesUp;/// 入账时按"本次增量 × 当时有效倍率"累计的预计扣量（下行）。
- int get estimatedBilledBytesDown; DateTime get updatedAt;
+ int get estimatedBilledBytesDown;/// 上行预计扣量毫字节余数（0–999）或 -1（不可估算）。
+ int get billedRemainderUp;/// 下行预计扣量毫字节余数（0–999）或 -1（不可估算）。
+ int get billedRemainderDown; DateTime get updatedAt;
 /// Create a copy of HourlyTrafficStat
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -306,16 +308,16 @@ $HourlyTrafficStatCopyWith<HourlyTrafficStat> get copyWith => _$HourlyTrafficSta
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is HourlyTrafficStat&&(identical(other.periodId, periodId) || other.periodId == periodId)&&(identical(other.hourStart, hourStart) || other.hourStart == hourStart)&&(identical(other.appIdentifier, appIdentifier) || other.appIdentifier == appIdentifier)&&(identical(other.nodeName, nodeName) || other.nodeName == nodeName)&&(identical(other.domain, domain) || other.domain == domain)&&(identical(other.rule, rule) || other.rule == rule)&&(identical(other.bytesUp, bytesUp) || other.bytesUp == bytesUp)&&(identical(other.bytesDown, bytesDown) || other.bytesDown == bytesDown)&&(identical(other.multiplier, multiplier) || other.multiplier == multiplier)&&(identical(other.estimatedBilledBytesUp, estimatedBilledBytesUp) || other.estimatedBilledBytesUp == estimatedBilledBytesUp)&&(identical(other.estimatedBilledBytesDown, estimatedBilledBytesDown) || other.estimatedBilledBytesDown == estimatedBilledBytesDown)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is HourlyTrafficStat&&(identical(other.periodId, periodId) || other.periodId == periodId)&&(identical(other.hourStart, hourStart) || other.hourStart == hourStart)&&(identical(other.appIdentifier, appIdentifier) || other.appIdentifier == appIdentifier)&&(identical(other.nodeName, nodeName) || other.nodeName == nodeName)&&(identical(other.domain, domain) || other.domain == domain)&&(identical(other.rule, rule) || other.rule == rule)&&(identical(other.bytesUp, bytesUp) || other.bytesUp == bytesUp)&&(identical(other.bytesDown, bytesDown) || other.bytesDown == bytesDown)&&(identical(other.multiplier, multiplier) || other.multiplier == multiplier)&&(identical(other.estimatedBilledBytesUp, estimatedBilledBytesUp) || other.estimatedBilledBytesUp == estimatedBilledBytesUp)&&(identical(other.estimatedBilledBytesDown, estimatedBilledBytesDown) || other.estimatedBilledBytesDown == estimatedBilledBytesDown)&&(identical(other.billedRemainderUp, billedRemainderUp) || other.billedRemainderUp == billedRemainderUp)&&(identical(other.billedRemainderDown, billedRemainderDown) || other.billedRemainderDown == billedRemainderDown)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,periodId,hourStart,appIdentifier,nodeName,domain,rule,bytesUp,bytesDown,multiplier,estimatedBilledBytesUp,estimatedBilledBytesDown,updatedAt);
+int get hashCode => Object.hash(runtimeType,periodId,hourStart,appIdentifier,nodeName,domain,rule,bytesUp,bytesDown,multiplier,estimatedBilledBytesUp,estimatedBilledBytesDown,billedRemainderUp,billedRemainderDown,updatedAt);
 
 @override
 String toString() {
-  return 'HourlyTrafficStat(periodId: $periodId, hourStart: $hourStart, appIdentifier: $appIdentifier, nodeName: $nodeName, domain: $domain, rule: $rule, bytesUp: $bytesUp, bytesDown: $bytesDown, multiplier: $multiplier, estimatedBilledBytesUp: $estimatedBilledBytesUp, estimatedBilledBytesDown: $estimatedBilledBytesDown, updatedAt: $updatedAt)';
+  return 'HourlyTrafficStat(periodId: $periodId, hourStart: $hourStart, appIdentifier: $appIdentifier, nodeName: $nodeName, domain: $domain, rule: $rule, bytesUp: $bytesUp, bytesDown: $bytesDown, multiplier: $multiplier, estimatedBilledBytesUp: $estimatedBilledBytesUp, estimatedBilledBytesDown: $estimatedBilledBytesDown, billedRemainderUp: $billedRemainderUp, billedRemainderDown: $billedRemainderDown, updatedAt: $updatedAt)';
 }
 
 
@@ -326,7 +328,7 @@ abstract mixin class $HourlyTrafficStatCopyWith<$Res>  {
   factory $HourlyTrafficStatCopyWith(HourlyTrafficStat value, $Res Function(HourlyTrafficStat) _then) = _$HourlyTrafficStatCopyWithImpl;
 @useResult
 $Res call({
- int periodId, DateTime hourStart, String appIdentifier, String nodeName, String domain, String rule, int bytesUp, int bytesDown, double multiplier, int estimatedBilledBytesUp, int estimatedBilledBytesDown, DateTime updatedAt
+ int periodId, DateTime hourStart, String appIdentifier, String nodeName, String domain, String rule, int bytesUp, int bytesDown, double multiplier, int estimatedBilledBytesUp, int estimatedBilledBytesDown, int billedRemainderUp, int billedRemainderDown, DateTime updatedAt
 });
 
 
@@ -343,7 +345,7 @@ class _$HourlyTrafficStatCopyWithImpl<$Res>
 
 /// Create a copy of HourlyTrafficStat
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? periodId = null,Object? hourStart = null,Object? appIdentifier = null,Object? nodeName = null,Object? domain = null,Object? rule = null,Object? bytesUp = null,Object? bytesDown = null,Object? multiplier = null,Object? estimatedBilledBytesUp = null,Object? estimatedBilledBytesDown = null,Object? updatedAt = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? periodId = null,Object? hourStart = null,Object? appIdentifier = null,Object? nodeName = null,Object? domain = null,Object? rule = null,Object? bytesUp = null,Object? bytesDown = null,Object? multiplier = null,Object? estimatedBilledBytesUp = null,Object? estimatedBilledBytesDown = null,Object? billedRemainderUp = null,Object? billedRemainderDown = null,Object? updatedAt = null,}) {
   return _then(_self.copyWith(
 periodId: null == periodId ? _self.periodId : periodId // ignore: cast_nullable_to_non_nullable
 as int,hourStart: null == hourStart ? _self.hourStart : hourStart // ignore: cast_nullable_to_non_nullable
@@ -356,6 +358,8 @@ as int,bytesDown: null == bytesDown ? _self.bytesDown : bytesDown // ignore: cas
 as int,multiplier: null == multiplier ? _self.multiplier : multiplier // ignore: cast_nullable_to_non_nullable
 as double,estimatedBilledBytesUp: null == estimatedBilledBytesUp ? _self.estimatedBilledBytesUp : estimatedBilledBytesUp // ignore: cast_nullable_to_non_nullable
 as int,estimatedBilledBytesDown: null == estimatedBilledBytesDown ? _self.estimatedBilledBytesDown : estimatedBilledBytesDown // ignore: cast_nullable_to_non_nullable
+as int,billedRemainderUp: null == billedRemainderUp ? _self.billedRemainderUp : billedRemainderUp // ignore: cast_nullable_to_non_nullable
+as int,billedRemainderDown: null == billedRemainderDown ? _self.billedRemainderDown : billedRemainderDown // ignore: cast_nullable_to_non_nullable
 as int,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));
@@ -442,10 +446,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int periodId,  DateTime hourStart,  String appIdentifier,  String nodeName,  String domain,  String rule,  int bytesUp,  int bytesDown,  double multiplier,  int estimatedBilledBytesUp,  int estimatedBilledBytesDown,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int periodId,  DateTime hourStart,  String appIdentifier,  String nodeName,  String domain,  String rule,  int bytesUp,  int bytesDown,  double multiplier,  int estimatedBilledBytesUp,  int estimatedBilledBytesDown,  int billedRemainderUp,  int billedRemainderDown,  DateTime updatedAt)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _HourlyTrafficStat() when $default != null:
-return $default(_that.periodId,_that.hourStart,_that.appIdentifier,_that.nodeName,_that.domain,_that.rule,_that.bytesUp,_that.bytesDown,_that.multiplier,_that.estimatedBilledBytesUp,_that.estimatedBilledBytesDown,_that.updatedAt);case _:
+return $default(_that.periodId,_that.hourStart,_that.appIdentifier,_that.nodeName,_that.domain,_that.rule,_that.bytesUp,_that.bytesDown,_that.multiplier,_that.estimatedBilledBytesUp,_that.estimatedBilledBytesDown,_that.billedRemainderUp,_that.billedRemainderDown,_that.updatedAt);case _:
   return orElse();
 
 }
@@ -463,10 +467,10 @@ return $default(_that.periodId,_that.hourStart,_that.appIdentifier,_that.nodeNam
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int periodId,  DateTime hourStart,  String appIdentifier,  String nodeName,  String domain,  String rule,  int bytesUp,  int bytesDown,  double multiplier,  int estimatedBilledBytesUp,  int estimatedBilledBytesDown,  DateTime updatedAt)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int periodId,  DateTime hourStart,  String appIdentifier,  String nodeName,  String domain,  String rule,  int bytesUp,  int bytesDown,  double multiplier,  int estimatedBilledBytesUp,  int estimatedBilledBytesDown,  int billedRemainderUp,  int billedRemainderDown,  DateTime updatedAt)  $default,) {final _that = this;
 switch (_that) {
 case _HourlyTrafficStat():
-return $default(_that.periodId,_that.hourStart,_that.appIdentifier,_that.nodeName,_that.domain,_that.rule,_that.bytesUp,_that.bytesDown,_that.multiplier,_that.estimatedBilledBytesUp,_that.estimatedBilledBytesDown,_that.updatedAt);case _:
+return $default(_that.periodId,_that.hourStart,_that.appIdentifier,_that.nodeName,_that.domain,_that.rule,_that.bytesUp,_that.bytesDown,_that.multiplier,_that.estimatedBilledBytesUp,_that.estimatedBilledBytesDown,_that.billedRemainderUp,_that.billedRemainderDown,_that.updatedAt);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -483,10 +487,10 @@ return $default(_that.periodId,_that.hourStart,_that.appIdentifier,_that.nodeNam
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int periodId,  DateTime hourStart,  String appIdentifier,  String nodeName,  String domain,  String rule,  int bytesUp,  int bytesDown,  double multiplier,  int estimatedBilledBytesUp,  int estimatedBilledBytesDown,  DateTime updatedAt)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int periodId,  DateTime hourStart,  String appIdentifier,  String nodeName,  String domain,  String rule,  int bytesUp,  int bytesDown,  double multiplier,  int estimatedBilledBytesUp,  int estimatedBilledBytesDown,  int billedRemainderUp,  int billedRemainderDown,  DateTime updatedAt)?  $default,) {final _that = this;
 switch (_that) {
 case _HourlyTrafficStat() when $default != null:
-return $default(_that.periodId,_that.hourStart,_that.appIdentifier,_that.nodeName,_that.domain,_that.rule,_that.bytesUp,_that.bytesDown,_that.multiplier,_that.estimatedBilledBytesUp,_that.estimatedBilledBytesDown,_that.updatedAt);case _:
+return $default(_that.periodId,_that.hourStart,_that.appIdentifier,_that.nodeName,_that.domain,_that.rule,_that.bytesUp,_that.bytesDown,_that.multiplier,_that.estimatedBilledBytesUp,_that.estimatedBilledBytesDown,_that.billedRemainderUp,_that.billedRemainderDown,_that.updatedAt);case _:
   return null;
 
 }
@@ -498,7 +502,7 @@ return $default(_that.periodId,_that.hourStart,_that.appIdentifier,_that.nodeNam
 @JsonSerializable()
 
 class _HourlyTrafficStat implements HourlyTrafficStat {
-  const _HourlyTrafficStat({required this.periodId, required this.hourStart, required this.appIdentifier, required this.nodeName, required this.domain, required this.rule, required this.bytesUp, required this.bytesDown, this.multiplier = 1.0, this.estimatedBilledBytesUp = 0, this.estimatedBilledBytesDown = 0, required this.updatedAt});
+  const _HourlyTrafficStat({required this.periodId, required this.hourStart, required this.appIdentifier, required this.nodeName, required this.domain, required this.rule, required this.bytesUp, required this.bytesDown, this.multiplier = 1.0, this.estimatedBilledBytesUp = 0, this.estimatedBilledBytesDown = 0, this.billedRemainderUp = 0, this.billedRemainderDown = 0, required this.updatedAt});
   factory _HourlyTrafficStat.fromJson(Map<String, dynamic> json) => _$HourlyTrafficStatFromJson(json);
 
 @override final  int periodId;
@@ -515,6 +519,10 @@ class _HourlyTrafficStat implements HourlyTrafficStat {
 @override@JsonKey() final  int estimatedBilledBytesUp;
 /// 入账时按"本次增量 × 当时有效倍率"累计的预计扣量（下行）。
 @override@JsonKey() final  int estimatedBilledBytesDown;
+/// 上行预计扣量毫字节余数（0–999）或 -1（不可估算）。
+@override@JsonKey() final  int billedRemainderUp;
+/// 下行预计扣量毫字节余数（0–999）或 -1（不可估算）。
+@override@JsonKey() final  int billedRemainderDown;
 @override final  DateTime updatedAt;
 
 /// Create a copy of HourlyTrafficStat
@@ -530,16 +538,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HourlyTrafficStat&&(identical(other.periodId, periodId) || other.periodId == periodId)&&(identical(other.hourStart, hourStart) || other.hourStart == hourStart)&&(identical(other.appIdentifier, appIdentifier) || other.appIdentifier == appIdentifier)&&(identical(other.nodeName, nodeName) || other.nodeName == nodeName)&&(identical(other.domain, domain) || other.domain == domain)&&(identical(other.rule, rule) || other.rule == rule)&&(identical(other.bytesUp, bytesUp) || other.bytesUp == bytesUp)&&(identical(other.bytesDown, bytesDown) || other.bytesDown == bytesDown)&&(identical(other.multiplier, multiplier) || other.multiplier == multiplier)&&(identical(other.estimatedBilledBytesUp, estimatedBilledBytesUp) || other.estimatedBilledBytesUp == estimatedBilledBytesUp)&&(identical(other.estimatedBilledBytesDown, estimatedBilledBytesDown) || other.estimatedBilledBytesDown == estimatedBilledBytesDown)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _HourlyTrafficStat&&(identical(other.periodId, periodId) || other.periodId == periodId)&&(identical(other.hourStart, hourStart) || other.hourStart == hourStart)&&(identical(other.appIdentifier, appIdentifier) || other.appIdentifier == appIdentifier)&&(identical(other.nodeName, nodeName) || other.nodeName == nodeName)&&(identical(other.domain, domain) || other.domain == domain)&&(identical(other.rule, rule) || other.rule == rule)&&(identical(other.bytesUp, bytesUp) || other.bytesUp == bytesUp)&&(identical(other.bytesDown, bytesDown) || other.bytesDown == bytesDown)&&(identical(other.multiplier, multiplier) || other.multiplier == multiplier)&&(identical(other.estimatedBilledBytesUp, estimatedBilledBytesUp) || other.estimatedBilledBytesUp == estimatedBilledBytesUp)&&(identical(other.estimatedBilledBytesDown, estimatedBilledBytesDown) || other.estimatedBilledBytesDown == estimatedBilledBytesDown)&&(identical(other.billedRemainderUp, billedRemainderUp) || other.billedRemainderUp == billedRemainderUp)&&(identical(other.billedRemainderDown, billedRemainderDown) || other.billedRemainderDown == billedRemainderDown)&&(identical(other.updatedAt, updatedAt) || other.updatedAt == updatedAt));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,periodId,hourStart,appIdentifier,nodeName,domain,rule,bytesUp,bytesDown,multiplier,estimatedBilledBytesUp,estimatedBilledBytesDown,updatedAt);
+int get hashCode => Object.hash(runtimeType,periodId,hourStart,appIdentifier,nodeName,domain,rule,bytesUp,bytesDown,multiplier,estimatedBilledBytesUp,estimatedBilledBytesDown,billedRemainderUp,billedRemainderDown,updatedAt);
 
 @override
 String toString() {
-  return 'HourlyTrafficStat(periodId: $periodId, hourStart: $hourStart, appIdentifier: $appIdentifier, nodeName: $nodeName, domain: $domain, rule: $rule, bytesUp: $bytesUp, bytesDown: $bytesDown, multiplier: $multiplier, estimatedBilledBytesUp: $estimatedBilledBytesUp, estimatedBilledBytesDown: $estimatedBilledBytesDown, updatedAt: $updatedAt)';
+  return 'HourlyTrafficStat(periodId: $periodId, hourStart: $hourStart, appIdentifier: $appIdentifier, nodeName: $nodeName, domain: $domain, rule: $rule, bytesUp: $bytesUp, bytesDown: $bytesDown, multiplier: $multiplier, estimatedBilledBytesUp: $estimatedBilledBytesUp, estimatedBilledBytesDown: $estimatedBilledBytesDown, billedRemainderUp: $billedRemainderUp, billedRemainderDown: $billedRemainderDown, updatedAt: $updatedAt)';
 }
 
 
@@ -550,7 +558,7 @@ abstract mixin class _$HourlyTrafficStatCopyWith<$Res> implements $HourlyTraffic
   factory _$HourlyTrafficStatCopyWith(_HourlyTrafficStat value, $Res Function(_HourlyTrafficStat) _then) = __$HourlyTrafficStatCopyWithImpl;
 @override @useResult
 $Res call({
- int periodId, DateTime hourStart, String appIdentifier, String nodeName, String domain, String rule, int bytesUp, int bytesDown, double multiplier, int estimatedBilledBytesUp, int estimatedBilledBytesDown, DateTime updatedAt
+ int periodId, DateTime hourStart, String appIdentifier, String nodeName, String domain, String rule, int bytesUp, int bytesDown, double multiplier, int estimatedBilledBytesUp, int estimatedBilledBytesDown, int billedRemainderUp, int billedRemainderDown, DateTime updatedAt
 });
 
 
@@ -567,7 +575,7 @@ class __$HourlyTrafficStatCopyWithImpl<$Res>
 
 /// Create a copy of HourlyTrafficStat
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? periodId = null,Object? hourStart = null,Object? appIdentifier = null,Object? nodeName = null,Object? domain = null,Object? rule = null,Object? bytesUp = null,Object? bytesDown = null,Object? multiplier = null,Object? estimatedBilledBytesUp = null,Object? estimatedBilledBytesDown = null,Object? updatedAt = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? periodId = null,Object? hourStart = null,Object? appIdentifier = null,Object? nodeName = null,Object? domain = null,Object? rule = null,Object? bytesUp = null,Object? bytesDown = null,Object? multiplier = null,Object? estimatedBilledBytesUp = null,Object? estimatedBilledBytesDown = null,Object? billedRemainderUp = null,Object? billedRemainderDown = null,Object? updatedAt = null,}) {
   return _then(_HourlyTrafficStat(
 periodId: null == periodId ? _self.periodId : periodId // ignore: cast_nullable_to_non_nullable
 as int,hourStart: null == hourStart ? _self.hourStart : hourStart // ignore: cast_nullable_to_non_nullable
@@ -580,6 +588,8 @@ as int,bytesDown: null == bytesDown ? _self.bytesDown : bytesDown // ignore: cas
 as int,multiplier: null == multiplier ? _self.multiplier : multiplier // ignore: cast_nullable_to_non_nullable
 as double,estimatedBilledBytesUp: null == estimatedBilledBytesUp ? _self.estimatedBilledBytesUp : estimatedBilledBytesUp // ignore: cast_nullable_to_non_nullable
 as int,estimatedBilledBytesDown: null == estimatedBilledBytesDown ? _self.estimatedBilledBytesDown : estimatedBilledBytesDown // ignore: cast_nullable_to_non_nullable
+as int,billedRemainderUp: null == billedRemainderUp ? _self.billedRemainderUp : billedRemainderUp // ignore: cast_nullable_to_non_nullable
+as int,billedRemainderDown: null == billedRemainderDown ? _self.billedRemainderDown : billedRemainderDown // ignore: cast_nullable_to_non_nullable
 as int,updatedAt: null == updatedAt ? _self.updatedAt : updatedAt // ignore: cast_nullable_to_non_nullable
 as DateTime,
   ));

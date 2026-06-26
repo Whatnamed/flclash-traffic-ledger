@@ -52,6 +52,10 @@ extension BillingPeriodExt on BillingPeriod {
 /// 预计扣量由 [estimatedBilledBytesUp] / [estimatedBilledBytesDown] 在入账时
 /// 按"本次增量 × 当时有效倍率"累计，后续修改节点倍率不会回写历史。
 /// [multiplier] 仅作展示用途（首次入账倍率快照），不再承担预计扣量计算。
+///
+/// 非整数倍率精度（Stage 3）：[billedRemainderUp] / [billedRemainderDown]
+/// 保存毫字节余数（0–999），避免反复截断导致长期低估。
+/// 值为 -1（[unbilledSentinel]）表示该部分无法可靠估算扣量。
 @freezed
 abstract class HourlyTrafficStat with _$HourlyTrafficStat {
   const factory HourlyTrafficStat({
@@ -69,6 +73,10 @@ abstract class HourlyTrafficStat with _$HourlyTrafficStat {
     @Default(0) int estimatedBilledBytesUp,
     /// 入账时按"本次增量 × 当时有效倍率"累计的预计扣量（下行）。
     @Default(0) int estimatedBilledBytesDown,
+    /// 上行预计扣量毫字节余数（0–999）或 -1（不可估算）。
+    @Default(0) int billedRemainderUp,
+    /// 下行预计扣量毫字节余数（0–999）或 -1（不可估算）。
+    @Default(0) int billedRemainderDown,
     required DateTime updatedAt,
   }) = _HourlyTrafficStat;
 
@@ -85,6 +93,10 @@ extension HourlyTrafficStatExt on HourlyTrafficStat {
 
   /// 是否为未归因代理流量（连接归因与总代理流量不一致时记录）。
   bool get isUnattributed => appIdentifier == unattributedAppIdentifier;
+
+  /// 是否为不可估算扣量（余数为 -1）。
+  bool get isUnbilled =>
+      billedRemainderUp == -1 || billedRemainderDown == -1;
 }
 
 /// 节点倍率记录。[parsedMultiplier] 从节点名自动解析，[manualMultiplier]

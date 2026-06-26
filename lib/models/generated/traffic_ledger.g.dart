@@ -41,6 +41,8 @@ _HourlyTrafficStat _$HourlyTrafficStatFromJson(Map<String, dynamic> json) =>
           (json['estimatedBilledBytesUp'] as num?)?.toInt() ?? 0,
       estimatedBilledBytesDown:
           (json['estimatedBilledBytesDown'] as num?)?.toInt() ?? 0,
+      billedRemainderUp: (json['billedRemainderUp'] as num?)?.toInt() ?? 0,
+      billedRemainderDown: (json['billedRemainderDown'] as num?)?.toInt() ?? 0,
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
 
@@ -57,6 +59,8 @@ Map<String, dynamic> _$HourlyTrafficStatToJson(_HourlyTrafficStat instance) =>
       'multiplier': instance.multiplier,
       'estimatedBilledBytesUp': instance.estimatedBilledBytesUp,
       'estimatedBilledBytesDown': instance.estimatedBilledBytesDown,
+      'billedRemainderUp': instance.billedRemainderUp,
+      'billedRemainderDown': instance.billedRemainderDown,
       'updatedAt': instance.updatedAt.toIso8601String(),
     };
 

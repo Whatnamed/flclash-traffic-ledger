@@ -3875,6 +3875,29 @@ class $TrafficHourlyStatsTable extends TrafficHourlyStats
         requiredDuringInsert: false,
         defaultValue: const Constant(0),
       );
+  static const VerificationMeta _billedRemainderUpMeta = const VerificationMeta(
+    'billedRemainderUp',
+  );
+  @override
+  late final GeneratedColumn<int> billedRemainderUp = GeneratedColumn<int>(
+    'billed_remainder_up',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _billedRemainderDownMeta =
+      const VerificationMeta('billedRemainderDown');
+  @override
+  late final GeneratedColumn<int> billedRemainderDown = GeneratedColumn<int>(
+    'billed_remainder_down',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -3899,6 +3922,8 @@ class $TrafficHourlyStatsTable extends TrafficHourlyStats
     multiplier,
     estimatedBilledBytesUp,
     estimatedBilledBytesDown,
+    billedRemainderUp,
+    billedRemainderDown,
     updatedAt,
   ];
   @override
@@ -3992,6 +4017,24 @@ class $TrafficHourlyStatsTable extends TrafficHourlyStats
         ),
       );
     }
+    if (data.containsKey('billed_remainder_up')) {
+      context.handle(
+        _billedRemainderUpMeta,
+        billedRemainderUp.isAcceptableOrUnknown(
+          data['billed_remainder_up']!,
+          _billedRemainderUpMeta,
+        ),
+      );
+    }
+    if (data.containsKey('billed_remainder_down')) {
+      context.handle(
+        _billedRemainderDownMeta,
+        billedRemainderDown.isAcceptableOrUnknown(
+          data['billed_remainder_down']!,
+          _billedRemainderDownMeta,
+        ),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -4060,6 +4103,14 @@ class $TrafficHourlyStatsTable extends TrafficHourlyStats
         DriftSqlType.int,
         data['${effectivePrefix}estimated_billed_bytes_down'],
       )!,
+      billedRemainderUp: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}billed_remainder_up'],
+      )!,
+      billedRemainderDown: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}billed_remainder_down'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -4102,6 +4153,12 @@ class TrafficHourlyStat extends DataClass
 
   /// 入账时按"本次增量下行 × 当时有效倍率"累计的预计扣量。
   final int estimatedBilledBytesDown;
+
+  /// 上行预计扣量毫字节余数（0–999）或 -1（不可估算）。
+  final int billedRemainderUp;
+
+  /// 下行预计扣量毫字节余数（0–999）或 -1（不可估算）。
+  final int billedRemainderDown;
   final int updatedAt;
   const TrafficHourlyStat({
     required this.periodId,
@@ -4115,6 +4172,8 @@ class TrafficHourlyStat extends DataClass
     required this.multiplier,
     required this.estimatedBilledBytesUp,
     required this.estimatedBilledBytesDown,
+    required this.billedRemainderUp,
+    required this.billedRemainderDown,
     required this.updatedAt,
   });
   @override
@@ -4133,6 +4192,8 @@ class TrafficHourlyStat extends DataClass
     map['estimated_billed_bytes_down'] = Variable<int>(
       estimatedBilledBytesDown,
     );
+    map['billed_remainder_up'] = Variable<int>(billedRemainderUp);
+    map['billed_remainder_down'] = Variable<int>(billedRemainderDown);
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
   }
@@ -4150,6 +4211,8 @@ class TrafficHourlyStat extends DataClass
       multiplier: Value(multiplier),
       estimatedBilledBytesUp: Value(estimatedBilledBytesUp),
       estimatedBilledBytesDown: Value(estimatedBilledBytesDown),
+      billedRemainderUp: Value(billedRemainderUp),
+      billedRemainderDown: Value(billedRemainderDown),
       updatedAt: Value(updatedAt),
     );
   }
@@ -4175,6 +4238,10 @@ class TrafficHourlyStat extends DataClass
       estimatedBilledBytesDown: serializer.fromJson<int>(
         json['estimatedBilledBytesDown'],
       ),
+      billedRemainderUp: serializer.fromJson<int>(json['billedRemainderUp']),
+      billedRemainderDown: serializer.fromJson<int>(
+        json['billedRemainderDown'],
+      ),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
   }
@@ -4195,6 +4262,8 @@ class TrafficHourlyStat extends DataClass
       'estimatedBilledBytesDown': serializer.toJson<int>(
         estimatedBilledBytesDown,
       ),
+      'billedRemainderUp': serializer.toJson<int>(billedRemainderUp),
+      'billedRemainderDown': serializer.toJson<int>(billedRemainderDown),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
   }
@@ -4211,6 +4280,8 @@ class TrafficHourlyStat extends DataClass
     double? multiplier,
     int? estimatedBilledBytesUp,
     int? estimatedBilledBytesDown,
+    int? billedRemainderUp,
+    int? billedRemainderDown,
     int? updatedAt,
   }) => TrafficHourlyStat(
     periodId: periodId ?? this.periodId,
@@ -4226,6 +4297,8 @@ class TrafficHourlyStat extends DataClass
         estimatedBilledBytesUp ?? this.estimatedBilledBytesUp,
     estimatedBilledBytesDown:
         estimatedBilledBytesDown ?? this.estimatedBilledBytesDown,
+    billedRemainderUp: billedRemainderUp ?? this.billedRemainderUp,
+    billedRemainderDown: billedRemainderDown ?? this.billedRemainderDown,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   TrafficHourlyStat copyWithCompanion(TrafficHourlyStatsCompanion data) {
@@ -4249,6 +4322,12 @@ class TrafficHourlyStat extends DataClass
       estimatedBilledBytesDown: data.estimatedBilledBytesDown.present
           ? data.estimatedBilledBytesDown.value
           : this.estimatedBilledBytesDown,
+      billedRemainderUp: data.billedRemainderUp.present
+          ? data.billedRemainderUp.value
+          : this.billedRemainderUp,
+      billedRemainderDown: data.billedRemainderDown.present
+          ? data.billedRemainderDown.value
+          : this.billedRemainderDown,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -4267,6 +4346,8 @@ class TrafficHourlyStat extends DataClass
           ..write('multiplier: $multiplier, ')
           ..write('estimatedBilledBytesUp: $estimatedBilledBytesUp, ')
           ..write('estimatedBilledBytesDown: $estimatedBilledBytesDown, ')
+          ..write('billedRemainderUp: $billedRemainderUp, ')
+          ..write('billedRemainderDown: $billedRemainderDown, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -4285,6 +4366,8 @@ class TrafficHourlyStat extends DataClass
     multiplier,
     estimatedBilledBytesUp,
     estimatedBilledBytesDown,
+    billedRemainderUp,
+    billedRemainderDown,
     updatedAt,
   );
   @override
@@ -4302,6 +4385,8 @@ class TrafficHourlyStat extends DataClass
           other.multiplier == this.multiplier &&
           other.estimatedBilledBytesUp == this.estimatedBilledBytesUp &&
           other.estimatedBilledBytesDown == this.estimatedBilledBytesDown &&
+          other.billedRemainderUp == this.billedRemainderUp &&
+          other.billedRemainderDown == this.billedRemainderDown &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -4317,6 +4402,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
   final Value<double> multiplier;
   final Value<int> estimatedBilledBytesUp;
   final Value<int> estimatedBilledBytesDown;
+  final Value<int> billedRemainderUp;
+  final Value<int> billedRemainderDown;
   final Value<int> updatedAt;
   final Value<int> rowid;
   const TrafficHourlyStatsCompanion({
@@ -4331,6 +4418,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
     this.multiplier = const Value.absent(),
     this.estimatedBilledBytesUp = const Value.absent(),
     this.estimatedBilledBytesDown = const Value.absent(),
+    this.billedRemainderUp = const Value.absent(),
+    this.billedRemainderDown = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -4346,6 +4435,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
     this.multiplier = const Value.absent(),
     this.estimatedBilledBytesUp = const Value.absent(),
     this.estimatedBilledBytesDown = const Value.absent(),
+    this.billedRemainderUp = const Value.absent(),
+    this.billedRemainderDown = const Value.absent(),
     required int updatedAt,
     this.rowid = const Value.absent(),
   }) : periodId = Value(periodId),
@@ -4363,6 +4454,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
     Expression<double>? multiplier,
     Expression<int>? estimatedBilledBytesUp,
     Expression<int>? estimatedBilledBytesDown,
+    Expression<int>? billedRemainderUp,
+    Expression<int>? billedRemainderDown,
     Expression<int>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -4380,6 +4473,9 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
         'estimated_billed_bytes_up': estimatedBilledBytesUp,
       if (estimatedBilledBytesDown != null)
         'estimated_billed_bytes_down': estimatedBilledBytesDown,
+      if (billedRemainderUp != null) 'billed_remainder_up': billedRemainderUp,
+      if (billedRemainderDown != null)
+        'billed_remainder_down': billedRemainderDown,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -4397,6 +4493,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
     Value<double>? multiplier,
     Value<int>? estimatedBilledBytesUp,
     Value<int>? estimatedBilledBytesDown,
+    Value<int>? billedRemainderUp,
+    Value<int>? billedRemainderDown,
     Value<int>? updatedAt,
     Value<int>? rowid,
   }) {
@@ -4414,6 +4512,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
           estimatedBilledBytesUp ?? this.estimatedBilledBytesUp,
       estimatedBilledBytesDown:
           estimatedBilledBytesDown ?? this.estimatedBilledBytesDown,
+      billedRemainderUp: billedRemainderUp ?? this.billedRemainderUp,
+      billedRemainderDown: billedRemainderDown ?? this.billedRemainderDown,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -4459,6 +4559,12 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
         estimatedBilledBytesDown.value,
       );
     }
+    if (billedRemainderUp.present) {
+      map['billed_remainder_up'] = Variable<int>(billedRemainderUp.value);
+    }
+    if (billedRemainderDown.present) {
+      map['billed_remainder_down'] = Variable<int>(billedRemainderDown.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -4482,6 +4588,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
           ..write('multiplier: $multiplier, ')
           ..write('estimatedBilledBytesUp: $estimatedBilledBytesUp, ')
           ..write('estimatedBilledBytesDown: $estimatedBilledBytesDown, ')
+          ..write('billedRemainderUp: $billedRemainderUp, ')
+          ..write('billedRemainderDown: $billedRemainderDown, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -7948,6 +8056,8 @@ typedef $$TrafficHourlyStatsTableCreateCompanionBuilder =
       Value<double> multiplier,
       Value<int> estimatedBilledBytesUp,
       Value<int> estimatedBilledBytesDown,
+      Value<int> billedRemainderUp,
+      Value<int> billedRemainderDown,
       required int updatedAt,
       Value<int> rowid,
     });
@@ -7964,6 +8074,8 @@ typedef $$TrafficHourlyStatsTableUpdateCompanionBuilder =
       Value<double> multiplier,
       Value<int> estimatedBilledBytesUp,
       Value<int> estimatedBilledBytesDown,
+      Value<int> billedRemainderUp,
+      Value<int> billedRemainderDown,
       Value<int> updatedAt,
       Value<int> rowid,
     });
@@ -8063,6 +8175,16 @@ class $$TrafficHourlyStatsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get billedRemainderUp => $composableBuilder(
+    column: $table.billedRemainderUp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get billedRemainderDown => $composableBuilder(
+    column: $table.billedRemainderDown,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
@@ -8152,6 +8274,16 @@ class $$TrafficHourlyStatsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get billedRemainderUp => $composableBuilder(
+    column: $table.billedRemainderUp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get billedRemainderDown => $composableBuilder(
+    column: $table.billedRemainderDown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -8229,6 +8361,16 @@ class $$TrafficHourlyStatsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get billedRemainderUp => $composableBuilder(
+    column: $table.billedRemainderUp,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get billedRemainderDown => $composableBuilder(
+    column: $table.billedRemainderDown,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
@@ -8301,6 +8443,8 @@ class $$TrafficHourlyStatsTableTableManager
                 Value<double> multiplier = const Value.absent(),
                 Value<int> estimatedBilledBytesUp = const Value.absent(),
                 Value<int> estimatedBilledBytesDown = const Value.absent(),
+                Value<int> billedRemainderUp = const Value.absent(),
+                Value<int> billedRemainderDown = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TrafficHourlyStatsCompanion(
@@ -8315,6 +8459,8 @@ class $$TrafficHourlyStatsTableTableManager
                 multiplier: multiplier,
                 estimatedBilledBytesUp: estimatedBilledBytesUp,
                 estimatedBilledBytesDown: estimatedBilledBytesDown,
+                billedRemainderUp: billedRemainderUp,
+                billedRemainderDown: billedRemainderDown,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -8331,6 +8477,8 @@ class $$TrafficHourlyStatsTableTableManager
                 Value<double> multiplier = const Value.absent(),
                 Value<int> estimatedBilledBytesUp = const Value.absent(),
                 Value<int> estimatedBilledBytesDown = const Value.absent(),
+                Value<int> billedRemainderUp = const Value.absent(),
+                Value<int> billedRemainderDown = const Value.absent(),
                 required int updatedAt,
                 Value<int> rowid = const Value.absent(),
               }) => TrafficHourlyStatsCompanion.insert(
@@ -8345,6 +8493,8 @@ class $$TrafficHourlyStatsTableTableManager
                 multiplier: multiplier,
                 estimatedBilledBytesUp: estimatedBilledBytesUp,
                 estimatedBilledBytesDown: estimatedBilledBytesDown,
+                billedRemainderUp: billedRemainderUp,
+                billedRemainderDown: billedRemainderDown,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),

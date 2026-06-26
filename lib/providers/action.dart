@@ -144,6 +144,10 @@ class SetupAction extends _$SetupAction {
     if (!ref.read(suspendProvider)) {
       await coreController.startListener();
     }
+    // Traffic Ledger: 核心启动/重启时启动后台采集服务。
+    // 每次 _handleStart 都会调用 start()，服务内部递增 generation，
+    // reconciler 检测到 generation 变化后重建基线（不产生虚假增量）。
+    ref.read(trafficCollectionServiceProvider).start();
     _updateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       ref.read(commonActionProvider.notifier).updateRunTime();
       ref.read(commonActionProvider.notifier).updateTraffic();
@@ -159,6 +163,11 @@ class SetupAction extends _$SetupAction {
     _updateTimer?.cancel();
     _updateTimer = null;
     await coreController.stopListener();
+    // Traffic Ledger: 核心停止时暂停采集服务。
+    // 暂停仅停止新增采样，不清零历史；待写数据会 flush 到 DAO。
+    // 核心再次启动时 _handleStart 会调用 start()，generation 递增，
+    // reconciler 重建基线，继续累计同一活动计费周期。
+    await ref.read(trafficCollectionServiceProvider).pause();
   }
 
   Future<void> initStatus() async {
@@ -584,6 +593,10 @@ class SystemAction extends _$SystemAction {
         if (macOS != null) macOS!.updateDns(true),
         if (proxy != null) proxy!.stopProxy(),
         if (tray != null) tray!.destroy(),
+        // Traffic Ledger: 应用退出前尽力 flush 待写数据。
+        // flushAndDispose 取消定时器 + drain 待写桶 + 写入 DAO，
+        // 不依赖核心是否存活（仅写 SQLite）。
+        ref.read(trafficCollectionServiceProvider).flushAndDispose(),
       ]);
       await window?.close();
       await coreController.destroy();

@@ -46,7 +46,7 @@ class Database extends _$Database {
   Database([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   static LazyDatabase _openConnection() {
     return LazyDatabase(() async {
@@ -100,6 +100,24 @@ class Database extends _$Database {
           );
           // 4. 新增流量账本设置表（单行表）。
           await m.createTable(trafficLedgerSettings);
+        }
+        if (from < 5) {
+          // Stage 3 非整数倍率精度方案：
+          // 小时聚合表新增毫字节余数列（默认 0），用于在后续累加中保留
+          // 不足 1 字节的部分，避免反复截断导致长期系统性低估。
+          //
+          // 旧记录的 estimated 值由 v4 迁移按 bytes × multiplier 截断得出，
+          // 这里余数置 0 即可（旧值已被截断的不可恢复，但后续累加正确）。
+          // -1 表示"不可估算扣量"哨兵，仅由 Stage 3 采集服务在节点不可
+          // 靠识别时写入；旧记录不会有此值。
+          await m.addColumn(
+            trafficHourlyStats,
+            trafficHourlyStats.billedRemainderUp,
+          );
+          await m.addColumn(
+            trafficHourlyStats,
+            trafficHourlyStats.billedRemainderDown,
+          );
         }
       },
       beforeOpen: (details) async {

@@ -74,6 +74,11 @@ class BillingPeriodManager {
   Future<void> updateSettings(LedgerSettings settings, {DateTime? now}) =>
       _dao.updateSettings(settings, now: now);
 
+  /// 批量 upsert 小时聚合记录。委托到 [TrafficLedgerDao.upsertHourlyStats]。
+  /// 采集服务 flush 时调用。
+  Future<void> upsertHourlyStats(Iterable<HourlyTrafficStat> stats) =>
+      _dao.upsertHourlyStats(stats);
+
   /// 获取所有周期（历史 + 当前），按开始时间倒序。
   Selectable<TrafficBillingPeriod> allPeriods() => _dao.allPeriods();
 
