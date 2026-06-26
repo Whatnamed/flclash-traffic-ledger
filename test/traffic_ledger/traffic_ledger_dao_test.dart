@@ -676,12 +676,104 @@ void main() {
         billingCycleDay: 25,
       ));
       // 应用一直未运行，7-10 才启动
-      // 5-25 已过，应切换到 5-25 起的周期
+      // 5-25、6-25 都已过，当前所属周期为 6-25 ~ 7-25
+      // 多边界追赶：直接切换到 6-25（当前所属周期），不创建 5-25 空周期
       final p2 = await manager.ensureActivePeriod(now: DateTime(2026, 7, 10));
       expect(p2.id, isNot(p1.id));
       final start = DateTime.fromMillisecondsSinceEpoch(p2.startAt);
-      // nextCycleStart(5-1, 25) = 5-25
-      expect(start, DateTime(2026, 5, 25));
+      expect(start, DateTime(2026, 6, 25));
+      // 旧周期已结束，不存在 5-25 起的活动周期
+      final all = await manager.allPeriods().get();
+      final activePeriods = all.where((e) => e.endAt == null).toList();
+      expect(activePeriods.length, 1);
+      expect(activePeriods.first.id, p2.id);
+      // 不存在 startAt = 5-25 的周期（中间空周期不创建）
+      final may25 = all.where((e) =>
+          DateTime.fromMillisecondsSinceEpoch(e.startAt) ==
+          DateTime(2026, 5, 25)).toList();
+      expect(may25, isEmpty);
+    });
+
+    test('auto cycle catch up: old 5-1, day=25, now 8-26 -> active startAt 8-25', () async {
+      final t1 = DateTime(2026, 5, 1);
+      final p1 = await manager.ensureActivePeriod(now: t1);
+      await manager.updateSettings(const LedgerSettings(
+        autoCycleEnabled: true,
+        billingCycleDay: 25,
+      ));
+      // 8-26 当前所属周期为 8-25 ~ 9-25
+      final p2 = await manager.ensureActivePeriod(now: DateTime(2026, 8, 26));
+      expect(p2.id, isNot(p1.id));
+      final start = DateTime.fromMillisecondsSinceEpoch(p2.startAt);
+      expect(start, DateTime(2026, 8, 25));
+    });
+
+    test('auto cycle on, no active period, now 7-10, day=25 -> new period startAt 6-25', () async {
+      // 先开启自动周期（此时无活动周期）
+      await manager.updateSettings(const LedgerSettings(
+        autoCycleEnabled: true,
+        billingCycleDay: 25,
+      ));
+      // 7-10 当前所属周期为 6-25 ~ 7-25
+      final p = await manager.ensureActivePeriod(now: DateTime(2026, 7, 10));
+      final start = DateTime.fromMillisecondsSinceEpoch(p.startAt);
+      expect(start, DateTime(2026, 6, 25));
+    });
+
+    test('auto cycle off, no active period, now 7-10 -> new period startAt = now', () async {
+      // 自动周期关闭（默认），无活动周期
+      final now = DateTime(2026, 7, 10, 14, 30);
+      final p = await manager.ensureActivePeriod(now: now);
+      final start = DateTime.fromMillisecondsSinceEpoch(p.startAt);
+      expect(start, now);
+    });
+
+    test('manual createNewPeriod always starts from now regardless of auto cycle', () async {
+      // 开启自动周期
+      await manager.updateSettings(const LedgerSettings(
+        autoCycleEnabled: true,
+        billingCycleDay: 25,
+      ));
+      // 先建一个活动周期
+      await manager.ensureActivePeriod(now: DateTime(2026, 6, 1));
+      // 手动新建周期，应从用户点击时刻开始，不被自动周期逻辑覆盖
+      final manualNow = DateTime(2026, 6, 15, 10, 30);
+      final p = await manager.createNewPeriod(startAt: manualNow);
+      final start = DateTime.fromMillisecondsSinceEpoch(p.startAt);
+      expect(start, manualNow);
+    });
+
+    test('manual createNewPeriod with default startAt uses current moment', () async {
+      await manager.updateSettings(const LedgerSettings(
+        autoCycleEnabled: true,
+        billingCycleDay: 25,
+      ));
+      await manager.ensureActivePeriod(now: DateTime(2026, 6, 1));
+      // 不传 startAt，应使用 DateTime.now()（当前时刻，非 cycleStartFor）
+      final p = await manager.createNewPeriod();
+      // 只验证 endAt 为 null（活动周期），startAt 不做精确比较（依赖系统时间）
+      expect(p.endAt, isNull);
+      final start = DateTime.fromMillisecondsSinceEpoch(p.startAt);
+      // startAt 应在"现在"附近（1 分钟内），而不是对齐到某个刷新边界
+      final systemNow = DateTime.now();
+      expect(start.isAfter(systemNow.subtract(const Duration(minutes: 1))), isTrue);
+      expect(start.isBefore(systemNow.add(const Duration(minutes: 1))), isTrue);
+    });
+
+    test('within current cycle: no duplicate period, no startAt change', () async {
+      final t1 = DateTime(2026, 5, 26);
+      final p1 = await manager.ensureActivePeriod(now: t1);
+      await manager.updateSettings(const LedgerSettings(
+        autoCycleEnabled: true,
+        billingCycleDay: 25,
+      ));
+      // 6-10 还在 5-25 ~ 6-25 周期内，不应切换
+      final p2 = await manager.ensureActivePeriod(now: DateTime(2026, 6, 10));
+      expect(p2.id, p1.id);
+      expect(p2.startAt, p1.startAt);
+      // 只有一个周期
+      final all = await manager.allPeriods().get();
+      expect(all.length, 1);
     });
   });
 

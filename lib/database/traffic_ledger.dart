@@ -230,7 +230,11 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
   }
 
   /// 若账本设置开启自动周期且当前时刻已跨过刷新边界，则结束旧周期并
-  /// 按刷新边界创建新周期。返回新创建的周期（若发生了切换），否则 null。
+  /// 创建新周期。返回新创建的周期（若发生了切换），否则 null。
+  ///
+  /// 多边界追赶：当应用长时间未运行、跨过多个刷新边界时，直接切换到
+  /// 当前时刻所属的周期（cycleStartFor(now)），不创建中间空周期。
+  /// 旧周期 endAt = 当前所属周期开始时间，无空隙、无重叠。
   ///
   /// 应用未运行时不执行；下次 ensureActivePeriod 时会补做切换。
   Future<TrafficBillingPeriod?> maybeAutoCycleSwitch({
@@ -243,15 +247,17 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
     if (active == null) return null;
     final currentStart =
         DateTime.fromMillisecondsSinceEpoch(active.startAt);
-    final nextBoundary = BillingCycleCalculator.nextCycleStart(
-      currentStart,
+    // 计算当前时刻所属周期的开始时间。
+    final currentCycleStart = BillingCycleCalculator.cycleStartFor(
+      moment,
       settings.billingCycleDay,
-      settings.billingCycleHour,
     );
-    if (moment.isBefore(nextBoundary)) return null;
+    // 若当前周期开始时间不晚于旧周期开始时间，则仍在旧周期内，无需切换。
+    if (!currentCycleStart.isAfter(currentStart)) return null;
+    // 切换到当前所属周期。旧周期 endAt = currentCycleStart（无空隙、无重叠）。
     return startNewPeriod(
       label: active.label,
-      startAt: nextBoundary,
+      startAt: currentCycleStart,
     );
   }
 

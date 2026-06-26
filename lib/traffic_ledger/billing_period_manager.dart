@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:fl_clash/database/database.dart';
 import 'package:fl_clash/models/models.dart';
+import 'package:fl_clash/traffic_ledger/billing_cycle_calculator.dart';
 
 /// 计费周期管理器。封装"当前活动周期持续累计"、"新建周期不清零历史"、
 /// "清除流量历史与新建周期严格区分"、"可选自动周期切换（支持机场刷新日）"
@@ -13,22 +14,37 @@ class BillingPeriodManager {
 
   final TrafficLedgerDao _dao;
 
-  /// 获取当前活动周期。若无活动周期则自动创建一个（从现在开始）。
+  /// 获取当前活动周期。若无活动周期则自动创建一个。
+  ///
+  /// 创建首个周期的 startAt 规则：
+  /// - 自动周期开启：从 cycleStartFor(now, billingCycleDay) 开始
+  ///   （当前时刻所属周期的开始时间）；
+  /// - 自动周期关闭：从当前时刻开始。
+  ///
   /// 关键：代理开关、核心重启、应用重启都不会清零；只有此方法在无周期时
   /// 才会创建新周期，且创建时不删除任何历史。
   ///
-  /// 若账本设置开启自动周期且当前时刻已跨过刷新边界，会先补做周期切换。
+  /// 若账本设置开启自动周期且当前时刻已跨过刷新边界（含跨多个边界的追赶），
+  /// 会先补做周期切换。
   Future<TrafficBillingPeriod> ensureActivePeriod({DateTime? now}) async {
     final moment = now ?? DateTime.now();
-    // 先尝试自动周期切换（基于 settings 的刷新日）。
+    // 先尝试自动周期切换（基于 settings 的刷新日，含多边界追赶）。
     await _dao.maybeAutoCycleSwitch(now: moment);
     final active = await _dao.getActivePeriod();
     if (active != null) return active;
     // 首次启动或历史被清除后，创建首个周期。
-    return _dao.startNewPeriod(startAt: moment);
+    final settings = await _dao.getSettings();
+    final startAt = settings.autoCycleEnabled
+        ? BillingCycleCalculator.cycleStartFor(
+            moment,
+            settings.billingCycleDay,
+          )
+        : moment;
+    return _dao.startNewPeriod(startAt: startAt);
   }
 
   /// 用户手动"新建计费周期"。结束旧周期并创建新周期，保留所有历史。
+  /// 不受自动周期逻辑影响，始终从用户点击时刻开始（未传 startAt 时用 now）。
   Future<TrafficBillingPeriod> createNewPeriod({
     String? label,
     DateTime? startAt,
