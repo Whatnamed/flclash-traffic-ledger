@@ -281,6 +281,116 @@ void main() {
     });
   });
 
+  group('FlushBatch.mergeBack（Stage 3.1 并发安全）', () {
+    test('drain 后 mergeBack 同 key 数据累加', () {
+      final batch = FlushBatch();
+      final t = DateTime(2026, 6, 27, 10);
+      batch.add(
+        periodId: 1,
+        observedAt: t,
+        delta: const AttributedDelta(
+          appIdentifier: 'chrome.exe',
+          nodeName: 'JP',
+          domain: 'example.com',
+          rule: 'DOMAIN-SUFFIX',
+          deltaUp: 1000,
+          deltaDown: 2000,
+          effectiveMultiplier: 1.0,
+          estimatedBilledDeltaUp: 1000,
+          estimatedBilledDeltaDown: 2000,
+          billedRemainderDeltaUp: 0,
+          billedRemainderDeltaDown: 0,
+        ),
+      );
+      final stats = batch.drain(updatedAt: t);
+      expect(stats.length, 1);
+      expect(batch.isEmpty, true);
+
+      // mergeBack 后数据恢复到桶中。
+      batch.mergeBack(stats);
+      expect(batch.length, 1);
+      final stats2 = batch.drain(updatedAt: t);
+      expect(stats2.first.bytesUp, 1000);
+      expect(stats2.first.bytesDown, 2000);
+    });
+
+    test('mergeBack 与新写入数据累加（不覆盖）', () {
+      final batch = FlushBatch();
+      final t = DateTime(2026, 6, 27, 10);
+      batch.add(
+        periodId: 1,
+        observedAt: t,
+        delta: const AttributedDelta(
+          appIdentifier: 'chrome.exe',
+          nodeName: 'JP',
+          domain: 'example.com',
+          rule: 'DOMAIN-SUFFIX',
+          deltaUp: 1000,
+          deltaDown: 1000,
+          effectiveMultiplier: 1.0,
+          estimatedBilledDeltaUp: 1000,
+          estimatedBilledDeltaDown: 1000,
+          billedRemainderDeltaUp: 0,
+          billedRemainderDeltaDown: 0,
+        ),
+      );
+      final stats = batch.drain(updatedAt: t);
+
+      // 在 mergeBack 之前，新数据先写入空桶。
+      batch.add(
+        periodId: 1,
+        observedAt: t,
+        delta: const AttributedDelta(
+          appIdentifier: 'chrome.exe',
+          nodeName: 'JP',
+          domain: 'example.com',
+          rule: 'DOMAIN-SUFFIX',
+          deltaUp: 500,
+          deltaDown: 500,
+          effectiveMultiplier: 1.0,
+          estimatedBilledDeltaUp: 500,
+          estimatedBilledDeltaDown: 500,
+          billedRemainderDeltaUp: 0,
+          billedRemainderDeltaDown: 0,
+        ),
+      );
+      // mergeBack：累加而非覆盖。
+      batch.mergeBack(stats);
+      final stats2 = batch.drain(updatedAt: t);
+      expect(stats2.length, 1);
+      expect(stats2.first.bytesUp, 1500); // 1000 + 500
+      expect(stats2.first.bytesDown, 1500);
+    });
+
+    test('mergeBack 含 sentinel 余数时正确传播', () {
+      final batch = FlushBatch();
+      final t = DateTime(2026, 6, 27, 10);
+      batch.add(
+        periodId: 1,
+        observedAt: t,
+        delta: const AttributedDelta(
+          appIdentifier: unattributedAppIdentifier,
+          nodeName: unknownDimensionValue,
+          domain: unknownDimensionValue,
+          rule: unknownDimensionValue,
+          deltaUp: 1000,
+          deltaDown: 1000,
+          effectiveMultiplier: 0,
+          estimatedBilledDeltaUp: 0,
+          estimatedBilledDeltaDown: 0,
+          billedRemainderDeltaUp: unbilledSentinel,
+          billedRemainderDeltaDown: unbilledSentinel,
+        ),
+      );
+      final stats = batch.drain(updatedAt: t);
+      batch.mergeBack(stats);
+      final stats2 = batch.drain(updatedAt: t);
+      expect(stats2.first.billedRemainderUp, unbilledSentinel);
+      expect(stats2.first.billedRemainderDown, unbilledSentinel);
+      expect(stats2.first.isUnbilled, true);
+    });
+  });
+
   group('HourlyTrafficStat isUnbilled extension', () {
     test('isUnbilled true when either remainder is -1', () {
       final stat = HourlyTrafficStat(

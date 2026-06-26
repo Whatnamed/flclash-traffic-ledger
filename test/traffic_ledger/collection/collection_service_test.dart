@@ -146,7 +146,7 @@ void main() {
       expect(service.pendingBucketCount, greaterThan(0));
 
       // pause 触发 flush。
-      await service.pause();
+      await service.pauseAndFlush();
       expect(service.isRunning, false);
       expect(service.pendingBucketCount, 0);
 
@@ -612,7 +612,7 @@ void main() {
       await service.sampleOnce();
 
       // 暂停（核心停止）。
-      await service.pause();
+      await service.pauseAndFlush();
       final periodAfterPause = await periodManager.getActivePeriod();
 
       // 核心再次启动。

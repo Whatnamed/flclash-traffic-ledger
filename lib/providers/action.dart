@@ -163,11 +163,11 @@ class SetupAction extends _$SetupAction {
     _updateTimer?.cancel();
     _updateTimer = null;
     await coreController.stopListener();
-    // Traffic Ledger: 核心停止时暂停采集服务。
-    // 暂停仅停止新增采样，不清零历史；待写数据会 flush 到 DAO。
-    // 核心再次启动时 _handleStart 会调用 start()，generation 递增，
-    // reconciler 重建基线，继续累计同一活动计费周期。
-    await ref.read(trafficCollectionServiceProvider).pause();
+    // Traffic Ledger: 核心停止时立即 flush 待写数据。
+    // pauseAndFlush 停止采样定时器 + 等待在飞采样完成 + drain 桶写入 DAO。
+    // 不清零历史；下次 _handleStart 会递增 generation，reconciler 重建基线，
+    // 继续累计同一活动计费周期。
+    await ref.read(trafficCollectionServiceProvider).pauseAndFlush();
   }
 
   Future<void> initStatus() async {

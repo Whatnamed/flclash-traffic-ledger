@@ -158,6 +158,64 @@ class FlushBatch {
     return result;
   }
 
+  /// 将 flush 失败的数据合并回桶（Stage 3.1 并发安全）。
+  ///
+  /// 语义：DAO 写入失败时调用，把 [stats] 重新累加回当前桶。
+  /// - 同 key 的桶：累加 bytesUp/Down、estimated、remainder；
+  /// - 新 key：创建新桶；
+  /// - 调用方需保证 [stats] 是最近一次 drain 的结果（同 updatedAt）。
+  ///
+  /// 注意：drain 后到 mergeBack 之间新写入的增量不会被覆盖，
+  /// mergeBack 是"累加"而非"替换"。
+  void mergeBack(Iterable<HourlyTrafficStat> stats) {
+    for (final s in stats) {
+      final key =
+          '${s.periodId}\u0000${s.hourStart.millisecondsSinceEpoch}\u0000'
+          '${s.appIdentifier}\u0000${s.nodeName}\u0000'
+          '${s.domain}\u0000${s.rule}';
+      final bucket = _buckets[key];
+      if (bucket == null) {
+        final b = HourlyBucket(
+          periodId: s.periodId,
+          hourStart: s.hourStart,
+          appIdentifier: s.appIdentifier,
+          nodeName: s.nodeName,
+          domain: s.domain,
+          rule: s.rule,
+          firstMultiplier: s.multiplier,
+        )
+          ..bytesUp = s.bytesUp
+          ..bytesDown = s.bytesDown
+          ..estimatedBilledBytesUp = s.estimatedBilledBytesUp
+          ..estimatedBilledBytesDown = s.estimatedBilledBytesDown
+          ..billedRemainderUp = s.billedRemainderUp
+          ..billedRemainderDown = s.billedRemainderDown;
+        _buckets[key] = b;
+      } else {
+        bucket
+          ..bytesUp += s.bytesUp
+          ..bytesDown += s.bytesDown;
+        // 余数合并：任一为 sentinel → sentinel；否则相加（不进位，留给下次 flush 累加）。
+        if (bucket.billedRemainderUp == unbilledSentinel ||
+            s.billedRemainderUp == unbilledSentinel) {
+          bucket.billedRemainderUp = unbilledSentinel;
+          bucket.estimatedBilledBytesUp = 0;
+        } else {
+          bucket.estimatedBilledBytesUp += s.estimatedBilledBytesUp;
+          bucket.billedRemainderUp += s.billedRemainderUp;
+        }
+        if (bucket.billedRemainderDown == unbilledSentinel ||
+            s.billedRemainderDown == unbilledSentinel) {
+          bucket.billedRemainderDown = unbilledSentinel;
+          bucket.estimatedBilledBytesDown = 0;
+        } else {
+          bucket.estimatedBilledBytesDown += s.estimatedBilledBytesDown;
+          bucket.billedRemainderDown += s.billedRemainderDown;
+        }
+      }
+    }
+  }
+
   /// 仅查看当前桶数量（用于测试与诊断）。
   int get length => _buckets.length;
 }

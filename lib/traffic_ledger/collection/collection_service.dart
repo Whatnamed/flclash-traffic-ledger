@@ -19,13 +19,16 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 ///
 /// 生命周期：
 /// - [start]：核心启动/重启时调用，递增 generation，开始采样；
-/// - [pause]：核心停止时调用，停止采样但保留状态，flush 待写数据；
+/// - [pauseAndFlush]：核心停止时调用，停止采样 + 立即 flush；
 /// - [flushAndDispose]：应用退出前调用，最终 flush 并释放定时器。
 ///
-/// 采样时间决定周期归属（见 Stage 3 需求六）：
-/// - 每次采样用 `observedAt` 调用 [BillingPeriodManager.ensureActivePeriod]；
-/// - flush 时刻不影响样本归属周期；
-/// - 缓存当前 periodId + hourStart，仅在跨小时时重新查询。
+/// 并发防护（Stage 3.1）：
+/// - 采样操作互斥（同一时刻最多一个 _tick 在执行）；
+/// - flush 操作互斥（同一时刻最多一个 _flush 在执行）；
+/// - tick 内捕获 generation，await sample source 返回后若 generation
+///   已变化则丢弃样本；
+/// - flush 采用 swap-on-drain：写入 DAO 期间新增的 batch 不丢失；
+/// - DAO 写入失败时数据 merge-back 保留。
 class TrafficCollectionService {
   TrafficCollectionService({
     required TrafficSampleSource sampleSource,
@@ -66,7 +69,16 @@ class TrafficCollectionService {
   /// Flush 定时器。
   Timer? _flushTimer;
 
-  /// 是否正在采样（已 start 且未 pause/dispose）。
+  /// 采样互斥锁：同一时刻最多一个 _tick 在执行。
+  bool _samplingInFlight = false;
+
+  /// Flush 互斥锁：同一时刻最多一个 _flush 在执行。
+  bool _flushInFlight = false;
+
+  /// 是否已 disposed（最终 flush 完成，不再接受新采样/flush）。
+  bool _disposed = false;
+
+  /// 是否正在运行（已 start 且未 pause/dispose）。
   bool get isRunning => _samplingTimer != null;
 
   /// 是否已完成首次基线建立。
@@ -76,7 +88,6 @@ class TrafficCollectionService {
   int get pendingBucketCount => _pendingBatch.length;
 
   /// 缓存的当前周期 ID + 所属小时，避免每秒查库。
-  /// 跨小时（billingCycleDay 边界必然在整点）时重新查询。
   int? _cachedPeriodId;
   DateTime? _cachedPeriodCheckHour;
 
@@ -85,6 +96,13 @@ class TrafficCollectionService {
   ///
   /// 幂等：若已在运行，先取消现有定时器再重启。
   void start() {
+    if (_disposed) {
+      commonPrint.log(
+        'TrafficCollectionService.start() called after dispose; ignored',
+        logLevel: LogLevel.warning,
+      );
+      return;
+    }
     if (_samplingTimer != null) {
       commonPrint.log(
         'TrafficCollectionService.start() called while running; '
@@ -101,31 +119,50 @@ class TrafficCollectionService {
     );
   }
 
-  /// 暂停采样。停止定时器但保留采集状态（基线、generation）。
-  /// flush 待写数据以最小化数据丢失窗口。
+  /// 暂停采样并立即 flush 待写数据（Stage 3.1）。
   ///
-  /// 核心再次 [start] 时会递增 generation，reconciler 自动重建基线。
-  Future<void> pause() async {
+  /// 语义：
+  /// 1. 停止新的采样定时器；
+  /// 2. 阻止新的 tick 再写入 pending batch（_samplingInFlight 完成后不再新增）；
+  /// 3. 将当前 pending batch 立即持久化；
+  /// 4. 保留活动计费周期和已建立的历史；
+  /// 5. 不清零、不删除数据；
+  /// 6. 下次 start 后仍进入同一个活动周期，但通过 generation 建立新基线。
+  ///
+  /// 用于核心停止（[SetupAction.handleStop]）和计费周期手动切换。
+  Future<void> pauseAndFlush() async {
+    if (_disposed) return;
     _samplingTimer?.cancel();
     _samplingTimer = null;
     _flushTimer?.cancel();
     _flushTimer = null;
-    commonPrint.log('TrafficCollectionService paused');
-    // 暂停时 flush 待写数据，避免应用崩溃丢失。
+    commonPrint.log('TrafficCollectionService pauseAndFlush');
+    // 等待在飞的采样完成（避免数据写入已 drain 的 batch）。
+    // 这里用轮询而非 Completer，因为 _tick 内部异常可能导致信号丢失。
+    while (_samplingInFlight) {
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
     await _flush();
   }
 
   /// 最终 flush 并释放资源。应用退出前调用。
+  ///
+  /// 调用后服务进入 disposed 状态，后续 start() 被忽略。
   Future<void> flushAndDispose() async {
     _samplingTimer?.cancel();
     _samplingTimer = null;
     _flushTimer?.cancel();
     _flushTimer = null;
+    while (_samplingInFlight) {
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
     await _flush();
+    _disposed = true;
     commonPrint.log('TrafficCollectionService disposed');
   }
 
-  /// 手动触发一次 flush（不影响定时器）。
+  /// 手动触发一次 flush（不影响定时器，不影响生命周期）。
+  /// 用于计费周期手动切换等场景。
   Future<void> flush() => _flush();
 
   /// 手动触发一次采样（测试用）。不依赖定时器。
@@ -142,11 +179,25 @@ class TrafficCollectionService {
 
   /// 采样定时器回调。
   Future<void> _tick() async {
+    if (_disposed) return;
+    // 互斥：同一时刻最多一个采样在执行。
+    if (_samplingInFlight) return;
+    _samplingInFlight = true;
     try {
+      // 捕获当前 generation，await 后用于检测是否过期。
+      final tickGeneration = _generation;
       final observedAt = _now();
       final sample = await _sampleSource.collect(now: observedAt);
       if (sample == null) {
         // 核心未就绪或采样失败：跳过，不更新状态。
+        return;
+      }
+      // 过期样本检测：await 期间若已 pause/dispose/generation 变化，丢弃。
+      if (_disposed || _generation != tickGeneration) {
+        commonPrint.log(
+          'TrafficCollectionService: stale sample discarded '
+          '(disposed=$_disposed, gen $tickGeneration -> $_generation)',
+        );
         return;
       }
 
@@ -157,6 +208,14 @@ class TrafficCollectionService {
           .toSet();
       if (nodeNames.isNotEmpty) {
         await _multiplierResolver.refreshFor(nodeNames);
+      }
+
+      // 过期检测：refreshFor 也有 await，可能跨过 pause/dispose。
+      if (_disposed || _generation != tickGeneration) {
+        commonPrint.log(
+          'TrafficCollectionService: stale sample discarded after refresh',
+        );
+        return;
       }
 
       // Reconcile：计算增量并归因。
@@ -175,6 +234,12 @@ class TrafficCollectionService {
       // 将增量写入待写桶。每个 delta 用其 observedAt 决定归属周期。
       if (result.attributedDeltas.isNotEmpty) {
         final periodId = await _resolvePeriodId(observedAt);
+        if (_disposed || _generation != tickGeneration) {
+          commonPrint.log(
+            'TrafficCollectionService: deltas discarded after period resolve',
+          );
+          return;
+        }
         if (periodId != null) {
           for (final delta in result.attributedDeltas) {
             _pendingBatch.add(
@@ -190,29 +255,47 @@ class TrafficCollectionService {
         'TrafficCollectionService sample error: $e\n$s',
         logLevel: LogLevel.error,
       );
+    } finally {
+      _samplingInFlight = false;
     }
   }
 
   /// Flush 定时器回调。
   Future<void> _tickFlush() => _flush();
 
-  /// 将待写桶批量写入 DAO。空桶时跳过。
+  /// 将待写桶批量写入 DAO。
+  ///
+  /// 并发安全（Stage 3.1）：
+  /// - 互斥锁 _flushInFlight 防止同时多个 flush；
+  /// - swap-on-drain：写入期间新增的 batch 不丢失；
+  /// - DAO 写入失败时 merge-back 保留数据。
   Future<void> _flush() async {
+    if (_disposed) return;
+    if (_flushInFlight) return;
     if (_pendingBatch.isEmpty) return;
+    _flushInFlight = true;
     try {
       final flushAt = _now();
+      // swap：取出当前 batch 内容，新 batch 接收后续增量。
       final stats = _pendingBatch.drain(updatedAt: flushAt);
       if (stats.isEmpty) return;
-      // 注意：upsertHourlyStats 内部按主键 upsert + 累加，
-      // 不需要外层 transaction（Drift 自动批处理）。
-      await _periodManager.upsertHourlyStats(stats);
+      try {
+        await _periodManager.upsertHourlyStats(stats);
+      } catch (e, s) {
+        // DAO 写入失败：merge-back，将数据放回 batch 顶部。
+        commonPrint.log(
+          'TrafficCollectionService flush failed, merging back: $e\n$s',
+          logLevel: LogLevel.error,
+        );
+        _pendingBatch.mergeBack(stats);
+      }
     } catch (e, s) {
       commonPrint.log(
         'TrafficCollectionService flush error: $e\n$s',
         logLevel: LogLevel.error,
       );
-      // flush 失败时数据已 drain 出桶，无法回滚。
-      // 接受丢失这一窗口的增量（Stage 3 需求八的已知限制）。
+    } finally {
+      _flushInFlight = false;
     }
   }
 
