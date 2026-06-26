@@ -333,3 +333,186 @@ final class TrafficCollectionServiceProvider
 
 String _$trafficCollectionServiceHash() =>
     r'cc02fd62bc128b672f65db10560004a8e8e547bf';
+
+/// 流量账本页面数据 provider（Stage 4A）。
+///
+/// 每 5 秒自动刷新一次；手动调用 [TrafficLedgerRefreshNotifier.refresh]
+/// 可立即触发刷新。刷新时重新查询 DAO 聚合方法。
+
+@ProviderFor(TrafficLedgerSnapshotNotifier)
+final trafficLedgerSnapshotProvider = TrafficLedgerSnapshotNotifierProvider._();
+
+/// 流量账本页面数据 provider（Stage 4A）。
+///
+/// 每 5 秒自动刷新一次；手动调用 [TrafficLedgerRefreshNotifier.refresh]
+/// 可立即触发刷新。刷新时重新查询 DAO 聚合方法。
+final class TrafficLedgerSnapshotNotifierProvider
+    extends
+        $AsyncNotifierProvider<
+          TrafficLedgerSnapshotNotifier,
+          TrafficLedgerSnapshot
+        > {
+  /// 流量账本页面数据 provider（Stage 4A）。
+  ///
+  /// 每 5 秒自动刷新一次；手动调用 [TrafficLedgerRefreshNotifier.refresh]
+  /// 可立即触发刷新。刷新时重新查询 DAO 聚合方法。
+  TrafficLedgerSnapshotNotifierProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'trafficLedgerSnapshotProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$trafficLedgerSnapshotNotifierHash();
+
+  @$internal
+  @override
+  TrafficLedgerSnapshotNotifier create() => TrafficLedgerSnapshotNotifier();
+}
+
+String _$trafficLedgerSnapshotNotifierHash() =>
+    r'2114a5844b893ef86373cc0d98f12cc35b5f8faa';
+
+/// 流量账本页面数据 provider（Stage 4A）。
+///
+/// 每 5 秒自动刷新一次；手动调用 [TrafficLedgerRefreshNotifier.refresh]
+/// 可立即触发刷新。刷新时重新查询 DAO 聚合方法。
+
+abstract class _$TrafficLedgerSnapshotNotifier
+    extends $AsyncNotifier<TrafficLedgerSnapshot> {
+  FutureOr<TrafficLedgerSnapshot> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref =
+        this.ref
+            as $Ref<AsyncValue<TrafficLedgerSnapshot>, TrafficLedgerSnapshot>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<
+                AsyncValue<TrafficLedgerSnapshot>,
+                TrafficLedgerSnapshot
+              >,
+              AsyncValue<TrafficLedgerSnapshot>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+/// 采集服务运行状态（Stage 4A）。
+///
+/// 用于页面顶部"正在采集 / 已暂停 / 核心未运行"状态显示。
+/// 每 2 秒刷新一次（比 snapshot 更轻量，仅读取 service.isRunning）。
+
+@ProviderFor(CollectionStatusNotifier)
+final collectionStatusProvider = CollectionStatusNotifierProvider._();
+
+/// 采集服务运行状态（Stage 4A）。
+///
+/// 用于页面顶部"正在采集 / 已暂停 / 核心未运行"状态显示。
+/// 每 2 秒刷新一次（比 snapshot 更轻量，仅读取 service.isRunning）。
+final class CollectionStatusNotifierProvider
+    extends $AsyncNotifierProvider<CollectionStatusNotifier, bool> {
+  /// 采集服务运行状态（Stage 4A）。
+  ///
+  /// 用于页面顶部"正在采集 / 已暂停 / 核心未运行"状态显示。
+  /// 每 2 秒刷新一次（比 snapshot 更轻量，仅读取 service.isRunning）。
+  CollectionStatusNotifierProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'collectionStatusProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$collectionStatusNotifierHash();
+
+  @$internal
+  @override
+  CollectionStatusNotifier create() => CollectionStatusNotifier();
+}
+
+String _$collectionStatusNotifierHash() =>
+    r'88824eca5b9fea9c08fa53dd6efe8584cf6662c3';
+
+/// 采集服务运行状态（Stage 4A）。
+///
+/// 用于页面顶部"正在采集 / 已暂停 / 核心未运行"状态显示。
+/// 每 2 秒刷新一次（比 snapshot 更轻量，仅读取 service.isRunning）。
+
+abstract class _$CollectionStatusNotifier extends $AsyncNotifier<bool> {
+  FutureOr<bool> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<AsyncValue<bool>, bool>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<AsyncValue<bool>, bool>,
+              AsyncValue<bool>,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}
+
+/// 诊断汇总字符串（仅 debug）。release 构建中返回空字符串。
+
+@ProviderFor(trafficDiagnosticsSummary)
+final trafficDiagnosticsSummaryProvider = TrafficDiagnosticsSummaryProvider._();
+
+/// 诊断汇总字符串（仅 debug）。release 构建中返回空字符串。
+
+final class TrafficDiagnosticsSummaryProvider
+    extends $FunctionalProvider<String, String, String>
+    with $Provider<String> {
+  /// 诊断汇总字符串（仅 debug）。release 构建中返回空字符串。
+  TrafficDiagnosticsSummaryProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'trafficDiagnosticsSummaryProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$trafficDiagnosticsSummaryHash();
+
+  @$internal
+  @override
+  $ProviderElement<String> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
+
+  @override
+  String create(Ref ref) {
+    return trafficDiagnosticsSummary(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(String value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<String>(value),
+    );
+  }
+}
+
+String _$trafficDiagnosticsSummaryHash() =>
+    r'be9279ad61106947d6e155e535ef116234371abb';

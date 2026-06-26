@@ -72,6 +72,13 @@ class Navigation {
         builder: (_) => const ToolsView(key: GlobalObjectKey(PageLabel.tools)),
         modes: [NavigationItemMode.desktop, NavigationItemMode.mobile],
       ),
+      NavigationItem(
+        icon: const Icon(Icons.receipt_long),
+        label: PageLabel.trafficLedger,
+        builder: (_) => const TrafficLedgerView(
+          key: GlobalObjectKey(PageLabel.trafficLedger),
+        ),
+      ),
     ];
   }
 

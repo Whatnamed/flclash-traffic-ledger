@@ -1113,12 +1113,353 @@ void main() {
       );
     });
 
-    test('nextCycleStart: clamps invalid day to 28', () {
+    test('nextCycleStart: clamps invalid day to 28', () async {
       // day=31 被钳制为 28
       expect(
         BillingCycleCalculator.nextCycleStart(DateTime(2026, 6, 1), 31),
         DateTime(2026, 6, 28),
       );
+    });
+  });
+
+  // ===== Stage 4A: 聚合查询测试 =====
+
+  group('TrafficLedgerDao - Stage 4A aggregations', () {
+    late Database db;
+    late TrafficLedgerDao dao;
+    late int periodId;
+
+    setUp(() async {
+      db = _createInMemoryDb();
+      dao = db.trafficLedgerDao;
+      final p = await dao.startNewPeriod(startAt: DateTime(2026, 6, 1));
+      periodId = p.id;
+    });
+    tearDown(() async => db.close());
+
+    HourlyTrafficStat makeStat({
+      required String appIdentifier,
+      required String nodeName,
+      required int bytesUp,
+      required int bytesDown,
+      int estimatedBilledBytesUp = 0,
+      int estimatedBilledBytesDown = 0,
+      int billedRemainderUp = 0,
+      int billedRemainderDown = 0,
+      DateTime? hourStart,
+    }) {
+      final h = hourStart ?? _hourStart(DateTime(2026, 6, 25, 10));
+      return HourlyTrafficStat(
+        periodId: periodId,
+        hourStart: h,
+        appIdentifier: appIdentifier,
+        nodeName: nodeName,
+        domain: '',
+        rule: '',
+        bytesUp: bytesUp,
+        bytesDown: bytesDown,
+        estimatedBilledBytesUp: estimatedBilledBytesUp,
+        estimatedBilledBytesDown: estimatedBilledBytesDown,
+        billedRemainderUp: billedRemainderUp,
+        billedRemainderDown: billedRemainderDown,
+        updatedAt: h,
+      );
+    }
+
+    test('queryPeriodOverview: empty period returns all zeros, no exception', () async {
+      final ov = await dao.queryPeriodOverview(periodId: periodId);
+      expect(ov.bytesUp, 0);
+      expect(ov.bytesDown, 0);
+      expect(ov.totalBytes, 0);
+      expect(ov.totalEstimatedBilled, 0);
+      expect(ov.totalUnbilled, 0);
+      expect(ov.isEmpty, isTrue);
+      expect(ov.billingCoverage, 1.0);
+    });
+
+    test('queryPeriodOverview: aggregates actual + estimated + upload/download', () async {
+      await dao.upsertHourlyStats([
+        makeStat(
+          appIdentifier: 'c:/app/chrome.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 1000,
+          bytesDown: 2000,
+          estimatedBilledBytesUp: 2000,
+          estimatedBilledBytesDown: 4000,
+        ),
+        makeStat(
+          appIdentifier: 'c:/app/firefox.exe',
+          nodeName: 'JP-1x',
+          bytesUp: 500,
+          bytesDown: 300,
+          estimatedBilledBytesUp: 500,
+          estimatedBilledBytesDown: 300,
+        ),
+      ]);
+      final ov = await dao.queryPeriodOverview(periodId: periodId);
+      expect(ov.bytesUp, 1500);
+      expect(ov.bytesDown, 2300);
+      expect(ov.totalBytes, 3800);
+      expect(ov.estimatedBilledBytesUp, 2500);
+      expect(ov.estimatedBilledBytesDown, 4300);
+      expect(ov.totalEstimatedBilled, 6800);
+      expect(ov.totalUnbilled, 0);
+      expect(ov.isEmpty, isFalse);
+    });
+
+    test('queryPeriodOverview: unbilled (sentinel -1) excluded from estimated', () async {
+      await dao.upsertHourlyStats([
+        makeStat(
+          appIdentifier: 'c:/app/chrome.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 1000,
+          bytesDown: 2000,
+          estimatedBilledBytesUp: 2000,
+          estimatedBilledBytesDown: 4000,
+          billedRemainderUp: 0,
+          billedRemainderDown: 0,
+        ),
+        // 不可估算行：billedRemainder = -1
+        makeStat(
+          appIdentifier: unattributedAppIdentifier,
+          nodeName: '',
+          bytesUp: 500,
+          bytesDown: 0,
+          estimatedBilledBytesUp: 0,
+          estimatedBilledBytesDown: 0,
+          billedRemainderUp: -1,
+          billedRemainderDown: -1,
+        ),
+      ]);
+      final ov = await dao.queryPeriodOverview(periodId: periodId);
+      // 实际流量含未归因
+      expect(ov.bytesUp, 1500);
+      expect(ov.bytesDown, 2000);
+      expect(ov.totalBytes, 3500);
+      // 预计扣量不含 sentinel 行
+      expect(ov.estimatedBilledBytesUp, 2000);
+      expect(ov.estimatedBilledBytesDown, 4000);
+      expect(ov.totalEstimatedBilled, 6000);
+      // unbilled = sentinel 行的实际流量
+      expect(ov.unbilledBytesUp, 500);
+      expect(ov.unbilledBytesDown, 0);
+      expect(ov.totalUnbilled, 500);
+      // 覆盖率 = 1 - 500/3500
+      expect(ov.billingCoverage, closeTo(1 - 500 / 3500, 0.001));
+    });
+
+    test('queryPeriodOverview: estimated uses persisted fields, not current multiplier', () async {
+      // 入账时倍率 2x, estimated = 2000
+      await dao.upsertHourlyStats([
+        makeStat(
+          appIdentifier: 'c:/app/chrome.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 1000,
+          bytesDown: 0,
+          estimatedBilledBytesUp: 2000,
+        ),
+      ]);
+      // 之后修改节点倍率
+      await dao.setManualMultiplier(nodeName: 'HK-2x', manualMultiplier: 10.0);
+      // 查询应仍返回 persisted estimated = 2000，不是 1000*10
+      final ov = await dao.queryPeriodOverview(periodId: periodId);
+      expect(ov.estimatedBilledBytesUp, 2000);
+      expect(ov.totalEstimatedBilled, 2000);
+    });
+
+    test('queryUnattributedOverview: isolates unattributed traffic', () async {
+      await dao.upsertHourlyStats([
+        makeStat(
+          appIdentifier: 'c:/app/chrome.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 1000,
+          bytesDown: 2000,
+          estimatedBilledBytesUp: 2000,
+          estimatedBilledBytesDown: 4000,
+        ),
+        makeStat(
+          appIdentifier: unattributedAppIdentifier,
+          nodeName: '',
+          bytesUp: 999,
+          bytesDown: 1,
+          estimatedBilledBytesUp: 999,
+          estimatedBilledBytesDown: 1,
+          billedRemainderUp: 0,
+          billedRemainderDown: 0,
+        ),
+      ]);
+      final ov = await dao.queryUnattributedOverview(periodId: periodId);
+      expect(ov.bytesUp, 999);
+      expect(ov.bytesDown, 1);
+      expect(ov.totalBytes, 1000);
+      expect(ov.estimatedBilledBytesUp, 999);
+      expect(ov.estimatedBilledBytesDown, 1);
+    });
+
+    test('queryUnattributedOverview: zero when no unattributed rows', () async {
+      await dao.upsertHourlyStats([
+        makeStat(
+          appIdentifier: 'c:/app/chrome.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 1000,
+          bytesDown: 2000,
+          estimatedBilledBytesUp: 2000,
+        ),
+      ]);
+      final ov = await dao.queryUnattributedOverview(periodId: periodId);
+      expect(ov.totalBytes, 0);
+      expect(ov.isEmpty, isTrue);
+    });
+
+    test('queryAppAggregations: orders by total actual bytes desc', () async {
+      await dao.upsertHourlyStats([
+        makeStat(
+          appIdentifier: 'c:/app/small.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 100,
+          bytesDown: 100,
+          estimatedBilledBytesUp: 200,
+          estimatedBilledBytesDown: 200,
+        ),
+        makeStat(
+          appIdentifier: 'c:/app/big.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 5000,
+          bytesDown: 5000,
+          estimatedBilledBytesUp: 10000,
+          estimatedBilledBytesDown: 10000,
+        ),
+        makeStat(
+          appIdentifier: 'c:/app/medium.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 1000,
+          bytesDown: 1000,
+          estimatedBilledBytesUp: 2000,
+          estimatedBilledBytesDown: 2000,
+        ),
+      ]);
+      final apps = await dao.queryAppAggregations(periodId: periodId);
+      expect(apps.length, 3);
+      expect(apps[0].appIdentifier, 'c:/app/big.exe');
+      expect(apps[0].totalBytes, 10000);
+      expect(apps[1].appIdentifier, 'c:/app/medium.exe');
+      expect(apps[1].totalBytes, 2000);
+      expect(apps[2].appIdentifier, 'c:/app/small.exe');
+      expect(apps[2].totalBytes, 200);
+    });
+
+    test('queryAppAggregations: same basename different path = separate items', () async {
+      await dao.upsertHourlyStats([
+        makeStat(
+          appIdentifier: 'c:/app1/node.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 100,
+          bytesDown: 0,
+          estimatedBilledBytesUp: 200,
+        ),
+        makeStat(
+          appIdentifier: 'c:/app2/node.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 200,
+          bytesDown: 0,
+          estimatedBilledBytesUp: 400,
+        ),
+      ]);
+      final apps = await dao.queryAppAggregations(periodId: periodId);
+      expect(apps.length, 2);
+      // 两个 node.exe 是不同聚合项
+      final ids = apps.map((a) => a.appIdentifier).toSet();
+      expect(ids.contains('c:/app1/node.exe'), isTrue);
+      expect(ids.contains('c:/app2/node.exe'), isTrue);
+    });
+
+    test('queryAppAggregations: unattributed excluded from app list', () async {
+      await dao.upsertHourlyStats([
+        makeStat(
+          appIdentifier: 'c:/app/chrome.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 1000,
+          bytesDown: 0,
+          estimatedBilledBytesUp: 2000,
+        ),
+        makeStat(
+          appIdentifier: unattributedAppIdentifier,
+          nodeName: '',
+          bytesUp: 999,
+          bytesDown: 0,
+        ),
+      ]);
+      final apps = await dao.queryAppAggregations(periodId: periodId);
+      expect(apps.length, 1);
+      expect(apps[0].appIdentifier, 'c:/app/chrome.exe');
+      // 未归因项不出现在应用列表
+      expect(
+        apps.any((a) => a.appIdentifier == unattributedAppIdentifier),
+        isFalse,
+      );
+    });
+
+    test('queryAppAggregations: empty period returns empty list', () async {
+      final apps = await dao.queryAppAggregations(periodId: periodId);
+      expect(apps, isEmpty);
+    });
+
+    test('queryAppAggregations: aggregates across hours + nodes for same app', () async {
+      final h1 = _hourStart(DateTime(2026, 6, 25, 10));
+      final h2 = _hourStart(DateTime(2026, 6, 25, 11));
+      await dao.upsertHourlyStats([
+        makeStat(
+          appIdentifier: 'c:/app/chrome.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 1000,
+          bytesDown: 0,
+          estimatedBilledBytesUp: 2000,
+          hourStart: h1,
+        ),
+        makeStat(
+          appIdentifier: 'c:/app/chrome.exe',
+          nodeName: 'JP-1x',
+          bytesUp: 500,
+          bytesDown: 200,
+          estimatedBilledBytesUp: 500,
+          estimatedBilledBytesDown: 200,
+          hourStart: h2,
+        ),
+      ]);
+      final apps = await dao.queryAppAggregations(periodId: periodId);
+      expect(apps.length, 1);
+      expect(apps[0].appIdentifier, 'c:/app/chrome.exe');
+      expect(apps[0].bytesUp, 1500);
+      expect(apps[0].bytesDown, 200);
+      expect(apps[0].totalBytes, 1700);
+      expect(apps[0].estimatedBilledBytesUp, 2500);
+      expect(apps[0].estimatedBilledBytesDown, 200);
+    });
+
+    test('queryAppAggregations: hasUnbilled flag set when any row has sentinel', () async {
+      await dao.upsertHourlyStats([
+        makeStat(
+          appIdentifier: 'c:/app/chrome.exe',
+          nodeName: 'HK-2x',
+          bytesUp: 1000,
+          bytesDown: 0,
+          estimatedBilledBytesUp: 2000,
+          billedRemainderUp: 0,
+        ),
+        // 同一应用的另一行不可估算
+        makeStat(
+          appIdentifier: 'c:/app/chrome.exe',
+          nodeName: 'unknown-node',
+          bytesUp: 500,
+          bytesDown: 0,
+          estimatedBilledBytesUp: 0,
+          billedRemainderUp: -1,
+          hourStart: _hourStart(DateTime(2026, 6, 25, 11)),
+        ),
+      ]);
+      final apps = await dao.queryAppAggregations(periodId: periodId);
+      expect(apps.length, 1);
+      expect(apps[0].hasUnbilled, isTrue);
     });
   });
 }

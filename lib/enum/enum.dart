@@ -340,6 +340,7 @@ enum PageLabel {
   requests,
   resources,
   connections,
+  trafficLedger,
 }
 
 enum RuleAction {

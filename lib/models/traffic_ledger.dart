@@ -155,3 +155,66 @@ const String unattributedAppIdentifier = '__unattributed__';
 
 /// 未知维度的占位符（应用/节点/域名/规则无法识别时使用）。
 const String unknownDimensionValue = '';
+
+/// 周期总览（Stage 4A）。由 DAO 聚合查询返回，UI 直接消费。
+///
+/// 语义：
+/// - [bytesUp]/[bytesDown]：实际代理流量（含未归因）。
+/// - [estimatedBilledBytesUp]/[estimatedBilledBytesDown]：按入账时倍率累计的预计扣量。
+///   仅包含可估算部分，不含 sentinel 标记的不可估算流量。
+/// - [unbilledBytesUp]/[unbilledBytesDown]：不可估算扣量的实际流量
+///   （billedRemainder=-1 的行）。这部分实际流量仍计入总量，但预计扣量不伪造。
+class PeriodOverview {
+  const PeriodOverview({
+    required this.bytesUp,
+    required this.bytesDown,
+    required this.estimatedBilledBytesUp,
+    required this.estimatedBilledBytesDown,
+    required this.unbilledBytesUp,
+    required this.unbilledBytesDown,
+  });
+
+  final int bytesUp;
+  final int bytesDown;
+  final int estimatedBilledBytesUp;
+  final int estimatedBilledBytesDown;
+  final int unbilledBytesUp;
+  final int unbilledBytesDown;
+
+  int get totalBytes => bytesUp + bytesDown;
+  int get totalEstimatedBilled => estimatedBilledBytesUp + estimatedBilledBytesDown;
+  int get totalUnbilled => unbilledBytesUp + unbilledBytesDown;
+
+  /// 预计扣量覆盖率（0.0–1.0）。
+  /// totalUnbilled 是无法估算扣量的实际流量，覆盖率为
+  /// 1 - unbilled/total。total=0 时返回 1.0（无流量视为全覆盖）。
+  double get billingCoverage {
+    if (totalBytes == 0) return 1.0;
+    return 1.0 - (totalUnbilled / totalBytes);
+  }
+
+  bool get isEmpty => totalBytes == 0;
+}
+
+/// 按应用聚合的流量统计（Stage 4A）。
+class AppAggregation {
+  const AppAggregation({
+    required this.appIdentifier,
+    required this.bytesUp,
+    required this.bytesDown,
+    required this.estimatedBilledBytesUp,
+    required this.estimatedBilledBytesDown,
+    required this.hasUnbilled,
+  });
+
+  final String appIdentifier;
+  final int bytesUp;
+  final int bytesDown;
+  final int estimatedBilledBytesUp;
+  final int estimatedBilledBytesDown;
+  final bool hasUnbilled;
+
+  int get totalBytes => bytesUp + bytesDown;
+  int get totalEstimatedBilled =>
+      estimatedBilledBytesUp + estimatedBilledBytesDown;
+}

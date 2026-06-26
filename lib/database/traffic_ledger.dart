@@ -415,6 +415,124 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
     return q.map((row) => row.toModel());
   }
 
+  // ---------- 聚合查询（Stage 4A） ----------
+
+  /// 当前周期总览：按维度汇总实际流量、预计扣量、上传、下载。
+  ///
+  /// 使用 customSelect 执行聚合 SQL，避免在 UI 层遍历所有小时记录。
+  /// 未归因流量（appIdentifier='__unattributed__'）计入实际代理总量，
+  /// 但其预计扣量是否计入取决于入账时是否可估算（billedRemainder != -1）。
+  Future<PeriodOverview> queryPeriodOverview({required int periodId}) async {
+    final rows = await customSelect(
+      'SELECT '
+      'COALESCE(SUM(bytes_up), 0) AS bytes_up, '
+      'COALESCE(SUM(bytes_down), 0) AS bytes_down, '
+      'COALESCE(SUM(estimated_billed_bytes_up), 0) AS estimated_up, '
+      'COALESCE(SUM(estimated_billed_bytes_down), 0) AS estimated_down, '
+      'COALESCE(SUM(CASE WHEN billed_remainder_up = -1 THEN bytes_up ELSE 0 END), 0) AS unbilled_up, '
+      'COALESCE(SUM(CASE WHEN billed_remainder_down = -1 THEN bytes_down ELSE 0 END), 0) AS unbilled_down '
+      'FROM traffic_hourly_stats WHERE period_id = ?',
+      variables: [Variable.withInt(periodId)],
+      readsFrom: {trafficHourlyStats},
+    ).get();
+    if (rows.isEmpty) {
+      return const PeriodOverview(
+        bytesUp: 0,
+        bytesDown: 0,
+        estimatedBilledBytesUp: 0,
+        estimatedBilledBytesDown: 0,
+        unbilledBytesUp: 0,
+        unbilledBytesDown: 0,
+      );
+    }
+    final r = rows.first;
+    return PeriodOverview(
+      bytesUp: r.read<int>('bytes_up'),
+      bytesDown: r.read<int>('bytes_down'),
+      estimatedBilledBytesUp: r.read<int>('estimated_up'),
+      estimatedBilledBytesDown: r.read<int>('estimated_down'),
+      unbilledBytesUp: r.read<int>('unbilled_up'),
+      unbilledBytesDown: r.read<int>('unbilled_down'),
+    );
+  }
+
+  /// 当前周期未归因代理流量汇总。
+  Future<PeriodOverview> queryUnattributedOverview({
+    required int periodId,
+  }) async {
+    final rows = await customSelect(
+      'SELECT '
+      'COALESCE(SUM(bytes_up), 0) AS bytes_up, '
+      'COALESCE(SUM(bytes_down), 0) AS bytes_down, '
+      'COALESCE(SUM(estimated_billed_bytes_up), 0) AS estimated_up, '
+      'COALESCE(SUM(estimated_billed_bytes_down), 0) AS estimated_down, '
+      'COALESCE(SUM(CASE WHEN billed_remainder_up = -1 THEN bytes_up ELSE 0 END), 0) AS unbilled_up, '
+      'COALESCE(SUM(CASE WHEN billed_remainder_down = -1 THEN bytes_down ELSE 0 END), 0) AS unbilled_down '
+      'FROM traffic_hourly_stats WHERE period_id = ? AND app_identifier = ?',
+      variables: [
+        Variable.withInt(periodId),
+        Variable.withString(unattributedAppIdentifier),
+      ],
+      readsFrom: {trafficHourlyStats},
+    ).get();
+    if (rows.isEmpty) {
+      return const PeriodOverview(
+        bytesUp: 0,
+        bytesDown: 0,
+        estimatedBilledBytesUp: 0,
+        estimatedBilledBytesDown: 0,
+        unbilledBytesUp: 0,
+        unbilledBytesDown: 0,
+      );
+    }
+    final r = rows.first;
+    return PeriodOverview(
+      bytesUp: r.read<int>('bytes_up'),
+      bytesDown: r.read<int>('bytes_down'),
+      estimatedBilledBytesUp: r.read<int>('estimated_up'),
+      estimatedBilledBytesDown: r.read<int>('estimated_down'),
+      unbilledBytesUp: r.read<int>('unbilled_up'),
+      unbilledBytesDown: r.read<int>('unbilled_down'),
+    );
+  }
+
+  /// 当前周期按应用聚合（不含未归因项）。按实际代理流量降序。
+  ///
+  /// 返回 [AppAggregation] 列表，每项包含 appIdentifier + 汇总数据。
+  /// 调用方（provider）负责用 AppIdentifierResolver 转换为显示名。
+  Future<List<AppAggregation>> queryAppAggregations({
+    required int periodId,
+  }) async {
+    final rows = await customSelect(
+      'SELECT '
+      'app_identifier, '
+      'COALESCE(SUM(bytes_up), 0) AS bytes_up, '
+      'COALESCE(SUM(bytes_down), 0) AS bytes_down, '
+      'COALESCE(SUM(estimated_billed_bytes_up), 0) AS estimated_up, '
+      'COALESCE(SUM(estimated_billed_bytes_down), 0) AS estimated_down, '
+      'COALESCE(SUM(CASE WHEN billed_remainder_up = -1 OR billed_remainder_down = -1 THEN 1 ELSE 0 END), 0) AS has_unbilled '
+      'FROM traffic_hourly_stats '
+      'WHERE period_id = ? AND app_identifier != ? '
+      'GROUP BY app_identifier '
+      'ORDER BY (bytes_up + bytes_down) DESC',
+      variables: [
+        Variable.withInt(periodId),
+        Variable.withString(unattributedAppIdentifier),
+      ],
+      readsFrom: {trafficHourlyStats},
+    ).get();
+    return rows
+        .map((r) => AppAggregation(
+              appIdentifier: r.read<String>('app_identifier'),
+              bytesUp: r.read<int>('bytes_up'),
+              bytesDown: r.read<int>('bytes_down'),
+              estimatedBilledBytesUp: r.read<int>('estimated_up'),
+              estimatedBilledBytesDown: r.read<int>('estimated_down'),
+              hasUnbilled: r.read<int>('has_unbilled') > 0,
+            ))
+        .toList();
+  }
+
   // ---------- 节点倍率 ----------
 
   /// 获取节点倍率记录。若无则返回 null。
