@@ -1,8 +1,10 @@
 import 'package:drift/drift.dart';
 import 'package:fl_clash/database/database.dart';
+import 'package:fl_clash/models/models.dart';
 
 /// 计费周期管理器。封装"当前活动周期持续累计"、"新建周期不清零历史"、
-/// "清除全部历史与新建周期严格区分"、"可选月度自动切换"等业务逻辑。
+/// "清除流量历史与新建周期严格区分"、"可选自动周期切换（支持机场刷新日）"
+/// 等业务逻辑。
 ///
 /// 本类仅做业务编排，不直接持有定时器或监听核心状态。采集服务（Stage 3）
 /// 会在 flush 时调用 [ensureActivePeriod] 获取当前周期 id。
@@ -14,10 +16,12 @@ class BillingPeriodManager {
   /// 获取当前活动周期。若无活动周期则自动创建一个（从现在开始）。
   /// 关键：代理开关、核心重启、应用重启都不会清零；只有此方法在无周期时
   /// 才会创建新周期，且创建时不删除任何历史。
+  ///
+  /// 若账本设置开启自动周期且当前时刻已跨过刷新边界，会先补做周期切换。
   Future<TrafficBillingPeriod> ensureActivePeriod({DateTime? now}) async {
     final moment = now ?? DateTime.now();
-    // 先尝试月度自动切换。
-    await _dao.maybeAutoMonthSwitch(now: moment);
+    // 先尝试自动周期切换（基于 settings 的刷新日）。
+    await _dao.maybeAutoCycleSwitch(now: moment);
     final active = await _dao.getActivePeriod();
     if (active != null) return active;
     // 首次启动或历史被清除后，创建首个周期。
@@ -28,30 +32,31 @@ class BillingPeriodManager {
   Future<TrafficBillingPeriod> createNewPeriod({
     String? label,
     DateTime? startAt,
-    bool autoMonthSwitch = false,
   }) {
     return _dao.startNewPeriod(
       label: label,
       startAt: startAt,
-      autoMonthSwitch: autoMonthSwitch,
     );
   }
 
-  /// 清除全部 Traffic Ledger 历史。与 [createNewPeriod] 严格区分：
-  /// 此操作删除所有周期、小时聚合和节点倍率记录。
-  Future<void> clearAllHistory() => _dao.clearAllHistory();
+  /// 清除流量历史：删除所有周期和小时聚合记录，**保留**节点倍率手动覆盖
+  /// 和账本设置。与 [createNewPeriod]（保留历史）严格区分。
+  Future<void> clearTrafficHistory() => _dao.clearTrafficHistory();
 
-  /// 更新周期标签或自动月度开关。
-  Future<void> updatePeriod(
-    int id, {
-    String? label,
-    bool? autoMonthSwitch,
-  }) =>
-      _dao.updatePeriod(
-        id,
-        label: label,
-        autoMonthSwitch: autoMonthSwitch,
-      );
+  /// 重置流量账本设置：删除节点倍率手动覆盖，并将账本设置恢复默认。
+  /// 不会删除周期和流量统计。
+  Future<void> resetLedgerSettings() => _dao.resetLedgerSettings();
+
+  /// 更新周期标签。
+  Future<void> updatePeriod(int id, {String? label}) =>
+      _dao.updatePeriod(id, label: label);
+
+  /// 获取账本设置。若无记录则返回默认值。
+  Future<LedgerSettings> getSettings() => _dao.getSettings();
+
+  /// 更新账本设置（自动周期开关、刷新日等）。
+  Future<void> updateSettings(LedgerSettings settings, {DateTime? now}) =>
+      _dao.updateSettings(settings, now: now);
 
   /// 获取所有周期（历史 + 当前），按开始时间倒序。
   Selectable<TrafficBillingPeriod> allPeriods() => _dao.allPeriods();

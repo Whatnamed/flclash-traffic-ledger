@@ -14,7 +14,6 @@ _BillingPeriod _$BillingPeriodFromJson(Map<String, dynamic> json) =>
       endAt: json['endAt'] == null
           ? null
           : DateTime.parse(json['endAt'] as String),
-      autoMonthSwitch: json['autoMonthSwitch'] as bool? ?? false,
       createdAt: DateTime.parse(json['createdAt'] as String),
     );
 
@@ -24,7 +23,6 @@ Map<String, dynamic> _$BillingPeriodToJson(_BillingPeriod instance) =>
       'label': instance.label,
       'startAt': instance.startAt.toIso8601String(),
       'endAt': instance.endAt?.toIso8601String(),
-      'autoMonthSwitch': instance.autoMonthSwitch,
       'createdAt': instance.createdAt.toIso8601String(),
     };
 
@@ -38,7 +36,11 @@ _HourlyTrafficStat _$HourlyTrafficStatFromJson(Map<String, dynamic> json) =>
       rule: json['rule'] as String,
       bytesUp: (json['bytesUp'] as num).toInt(),
       bytesDown: (json['bytesDown'] as num).toInt(),
-      multiplier: (json['multiplier'] as num).toDouble(),
+      multiplier: (json['multiplier'] as num?)?.toDouble() ?? 1.0,
+      estimatedBilledBytesUp:
+          (json['estimatedBilledBytesUp'] as num?)?.toInt() ?? 0,
+      estimatedBilledBytesDown:
+          (json['estimatedBilledBytesDown'] as num?)?.toInt() ?? 0,
       updatedAt: DateTime.parse(json['updatedAt'] as String),
     );
 
@@ -53,6 +55,8 @@ Map<String, dynamic> _$HourlyTrafficStatToJson(_HourlyTrafficStat instance) =>
       'bytesUp': instance.bytesUp,
       'bytesDown': instance.bytesDown,
       'multiplier': instance.multiplier,
+      'estimatedBilledBytesUp': instance.estimatedBilledBytesUp,
+      'estimatedBilledBytesDown': instance.estimatedBilledBytesDown,
       'updatedAt': instance.updatedAt.toIso8601String(),
     };
 
@@ -70,4 +74,22 @@ Map<String, dynamic> _$NodeMultiplierToJson(_NodeMultiplier instance) =>
       'parsedMultiplier': instance.parsedMultiplier,
       'manualMultiplier': instance.manualMultiplier,
       'updatedAt': instance.updatedAt.toIso8601String(),
+    };
+
+_LedgerSettings _$LedgerSettingsFromJson(Map<String, dynamic> json) =>
+    _LedgerSettings(
+      autoCycleEnabled: json['autoCycleEnabled'] as bool? ?? false,
+      billingCycleDay: (json['billingCycleDay'] as num?)?.toInt() ?? 1,
+      billingCycleHour: (json['billingCycleHour'] as num?)?.toInt() ?? 0,
+      updatedAt: json['updatedAt'] == null
+          ? null
+          : DateTime.parse(json['updatedAt'] as String),
+    );
+
+Map<String, dynamic> _$LedgerSettingsToJson(_LedgerSettings instance) =>
+    <String, dynamic>{
+      'autoCycleEnabled': instance.autoCycleEnabled,
+      'billingCycleDay': instance.billingCycleDay,
+      'billingCycleHour': instance.billingCycleHour,
+      'updatedAt': instance.updatedAt?.toIso8601String(),
     };

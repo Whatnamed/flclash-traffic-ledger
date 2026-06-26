@@ -8,6 +8,7 @@ import 'package:drift/native.dart';
 import 'package:fl_clash/common/common.dart';
 import 'package:fl_clash/enum/enum.dart';
 import 'package:fl_clash/models/models.dart';
+import 'package:fl_clash/traffic_ledger/billing_cycle_calculator.dart';
 
 part 'converter.dart';
 part 'generated/database.g.dart';
@@ -30,6 +31,7 @@ part 'traffic_ledger.dart';
     TrafficBillingPeriods,
     TrafficHourlyStats,
     TrafficNodeMultipliers,
+    TrafficLedgerSettings,
   ],
   daos: [
     ProfilesDao,
@@ -44,7 +46,7 @@ class Database extends _$Database {
   Database([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   static LazyDatabase _openConnection() {
     return LazyDatabase(() async {
@@ -71,6 +73,33 @@ class Database extends _$Database {
           await m.createIndex(idxTrafficPeriodHour);
           await m.createIndex(idxTrafficApp);
           await m.createIndex(idxTrafficNode);
+        }
+        if (from < 4) {
+          // Stage 2.1 修正：
+          // 1. 小时聚合表新增预计扣量累计列（默认 0）。
+          await m.addColumn(
+            trafficHourlyStats,
+            trafficHourlyStats.estimatedBilledBytesUp,
+          );
+          await m.addColumn(
+            trafficHourlyStats,
+            trafficHourlyStats.estimatedBilledBytesDown,
+          );
+          // 2. 回填旧记录的预计扣量：旧 multiplier 视为入账时快照，
+          //    按 bytes * multiplier 计算 estimated 值。开发版尚未真实
+          //    采集用户流量，旧记录通常为空或测试数据，回填安全。
+          await customStatement(
+            'UPDATE traffic_hourly_stats SET '
+            'estimated_billed_bytes_up = CAST(bytes_up * multiplier AS INTEGER), '
+            'estimated_billed_bytes_down = CAST(bytes_down * multiplier AS INTEGER)',
+          );
+          // 3. 计费周期表移除 autoMonthSwitch 列（重建表）。
+          //    自动周期配置迁移到独立的 traffic_ledger_settings 表。
+          await m.alterTable(
+            TableMigration(trafficBillingPeriods),
+          );
+          // 4. 新增流量账本设置表（单行表）。
+          await m.createTable(trafficLedgerSettings);
         }
       },
       beforeOpen: (details) async {

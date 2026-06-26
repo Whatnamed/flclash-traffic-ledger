@@ -1,7 +1,10 @@
 part of 'database.dart';
 
 /// 计费周期表。当前活动周期 endAt 为 null；用户手动"新建计费周期"或
-/// 开启自动月度切换时结束旧周期（设置 endAt）并创建新周期。
+/// 自动周期切换触发时结束旧周期（设置 endAt）并创建新周期。
+///
+/// 自动周期配置（刷新日、开关）存放在 [TrafficLedgerSettings]，
+/// 不再绑定到单个周期。
 @DataClassName('TrafficBillingPeriod')
 class TrafficBillingPeriods extends Table {
   @override
@@ -17,15 +20,15 @@ class TrafficBillingPeriods extends Table {
   /// 周期结束时间（epoch millis）。null 表示当前活动周期。
   IntColumn get endAt => integer().nullable()();
 
-  /// 是否按月自动切换周期。
-  BoolColumn get autoMonthSwitch => boolean().withDefault(const Constant(false))();
-
   IntColumn get createdAt => integer()();
 }
 
 /// 按小时聚合的流量统计表。长期只保存小时级聚合，不保存连接明细。
 /// 组合主键：(periodId, hourStart, appIdentifier, nodeName, domain, rule)。
-/// [multiplier] 为入账时倍率快照，修改节点倍率不回写历史。
+///
+/// [multiplier] 仅作展示用途（首次入账倍率快照）。
+/// [estimatedBilledBytesUp] / [estimatedBilledBytesDown] 在入账时按
+/// "本次增量 × 当时有效倍率"累计，后续修改节点倍率不回写历史。
 @DataClassName('TrafficHourlyStat')
 @TableIndex(
   name: 'idx_traffic_period_hour',
@@ -68,8 +71,16 @@ class TrafficHourlyStats extends Table {
 
   IntColumn get bytesDown => integer().withDefault(const Constant(0))();
 
-  /// 入账时倍率快照。
+  /// 首次入账时倍率快照，仅用于展示。
   RealColumn get multiplier => real().withDefault(const Constant(1.0))();
+
+  /// 入账时按"本次增量上行 × 当时有效倍率"累计的预计扣量。
+  IntColumn get estimatedBilledBytesUp =>
+      integer().withDefault(const Constant(0))();
+
+  /// 入账时按"本次增量下行 × 当时有效倍率"累计的预计扣量。
+  IntColumn get estimatedBilledBytesDown =>
+      integer().withDefault(const Constant(0))();
 
   IntColumn get updatedAt => integer()();
 
@@ -96,10 +107,68 @@ class TrafficNodeMultipliers extends Table {
   Set<Column> get primaryKey => {nodeName};
 }
 
-@DriftAccessor(tables: [TrafficBillingPeriods, TrafficHourlyStats, TrafficNodeMultipliers])
+/// 流量账本全局设置表（单行表，id 固定为 1）。
+/// 存放自动周期配置等账本级设置，不依附于某个历史周期。
+@DataClassName('TrafficLedgerSetting')
+class TrafficLedgerSettings extends Table {
+  @override
+  String get tableName => 'traffic_ledger_settings';
+
+  /// 固定为 1，保证全局唯一一行。
+  IntColumn get id => integer().withDefault(const Constant(1))();
+
+  /// 是否启用自动周期切换。
+  BoolColumn get autoCycleEnabled =>
+      boolean().withDefault(const Constant(false))();
+
+  /// 每月刷新日，取值范围 1–28。
+  IntColumn get billingCycleDay =>
+      integer().withDefault(const Constant(1))();
+
+  /// 刷新小时。第一版固定为 0（00:00），预留。
+  IntColumn get billingCycleHour =>
+      integer().withDefault(const Constant(0))();
+
+  IntColumn get updatedAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DriftAccessor(tables: [
+  TrafficBillingPeriods,
+  TrafficHourlyStats,
+  TrafficNodeMultipliers,
+  TrafficLedgerSettings,
+])
 class TrafficLedgerDao extends DatabaseAccessor<Database>
     with _$TrafficLedgerDaoMixin {
   TrafficLedgerDao(super.attachedDatabase);
+
+  // ---------- 账本设置 ----------
+
+  /// 获取账本设置。若无记录则返回默认值（不写库）。
+  Future<LedgerSettings> getSettings() async {
+    final row = await (trafficLedgerSettings.select()
+          ..where((t) => t.id.equals(1)))
+        .getSingleOrNull();
+    if (row == null) return defaultLedgerSettings;
+    return row.toModel();
+  }
+
+  /// 更新账本设置（upsert id=1）。
+  Future<void> updateSettings(LedgerSettings settings, {DateTime? now}) async {
+    final ts = (now ?? DateTime.now()).millisecondsSinceEpoch;
+    await trafficLedgerSettings.insertOnConflictUpdate(
+      TrafficLedgerSettingsCompanion.insert(
+        id: const Value(1),
+        autoCycleEnabled: Value(settings.autoCycleEnabled),
+        billingCycleDay: Value(settings.billingCycleDay),
+        billingCycleHour: Value(settings.billingCycleHour),
+        updatedAt: ts,
+      ),
+    );
+  }
 
   // ---------- 计费周期 ----------
 
@@ -120,12 +189,11 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
   }
 
   /// 创建新周期并结束旧周期。返回新周期。
-  /// 此操作即用户"新建计费周期"，与"清除全部历史"严格区分：
+  /// 此操作即用户"新建计费周期"，与"清除流量历史"严格区分：
   /// 旧周期及其流量记录全部保留，仅设置 endAt。
   Future<TrafficBillingPeriod> startNewPeriod({
     String? label,
     DateTime? startAt,
-    bool autoMonthSwitch = false,
   }) async {
     final now = DateTime.now();
     final start = startAt ?? now;
@@ -135,13 +203,13 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
       if (active != null) {
         await (trafficBillingPeriods.update()
               ..where((t) => t.id.equals(active.id)))
-            .write(TrafficBillingPeriodsCompanion(endAt: Value(start.millisecondsSinceEpoch)));
+            .write(TrafficBillingPeriodsCompanion(
+                endAt: Value(start.millisecondsSinceEpoch)));
       }
       final id = await into(trafficBillingPeriods).insert(
             TrafficBillingPeriodsCompanion.insert(
               label: Value(label),
               startAt: start.millisecondsSinceEpoch,
-              autoMonthSwitch: Value(autoMonthSwitch),
               createdAt: now.millisecondsSinceEpoch,
             ),
           );
@@ -151,61 +219,73 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
     });
   }
 
-  /// 更新周期标签或自动月度开关。
-  Future<void> updatePeriod(
-    int id, {
-    String? label,
-    bool? autoMonthSwitch,
-  }) async {
+  /// 更新周期标签。
+  Future<void> updatePeriod(int id, {String? label}) async {
     final companion = TrafficBillingPeriodsCompanion(
       label: label != null ? Value(label) : const Value.absent(),
-      autoMonthSwitch: autoMonthSwitch != null
-          ? Value(autoMonthSwitch)
-          : const Value.absent(),
     );
     await (trafficBillingPeriods.update()
           ..where((t) => t.id.equals(id)))
         .write(companion);
   }
 
-  /// 若当前活动周期开启了 autoMonthSwitch 且已跨月，则自动结束旧周期并
-  /// 按月初创建新周期。返回新创建的周期（若发生了切换），否则返回 null。
-  Future<TrafficBillingPeriod?> maybeAutoMonthSwitch({
+  /// 若账本设置开启自动周期且当前时刻已跨过刷新边界，则结束旧周期并
+  /// 按刷新边界创建新周期。返回新创建的周期（若发生了切换），否则 null。
+  ///
+  /// 应用未运行时不执行；下次 ensureActivePeriod 时会补做切换。
+  Future<TrafficBillingPeriod?> maybeAutoCycleSwitch({
     DateTime? now,
   }) async {
     final moment = now ?? DateTime.now();
+    final settings = await getSettings();
+    if (!settings.autoCycleEnabled) return null;
     final active = await getActivePeriod();
     if (active == null) return null;
-    if (!active.autoMonthSwitch) return null;
-    final start = DateTime.fromMillisecondsSinceEpoch(active.startAt);
-    // 已跨月（年或月不同）则切换。
-    if (start.year == moment.year && start.month == moment.month) {
-      return null;
-    }
-    final monthStart = DateTime(moment.year, moment.month, 1);
+    final currentStart =
+        DateTime.fromMillisecondsSinceEpoch(active.startAt);
+    final nextBoundary = BillingCycleCalculator.nextCycleStart(
+      currentStart,
+      settings.billingCycleDay,
+      settings.billingCycleHour,
+    );
+    if (moment.isBefore(nextBoundary)) return null;
     return startNewPeriod(
       label: active.label,
-      startAt: monthStart,
-      autoMonthSwitch: true,
+      startAt: nextBoundary,
     );
   }
 
-  /// 清除全部 Traffic Ledger 历史（所有周期 + 所有小时聚合 + 所有节点倍率）。
-  /// 与 [startNewPeriod] 严格区分：此操作删除一切历史。
-  Future<void> clearAllHistory() async {
+  /// 清除流量历史：删除所有周期和小时聚合记录，**保留**节点倍率手动覆盖
+  /// 和账本设置。与 [startNewPeriod]（保留历史）和 [resetLedgerSettings]
+  /// （删倍率+重置设置）严格区分。
+  Future<void> clearTrafficHistory() async {
     await transaction(() async {
       // 先删小时聚合（外键 cascade 也会处理，但显式删更安全）。
       await trafficHourlyStats.delete().go();
       await trafficBillingPeriods.delete().go();
+    });
+  }
+
+  /// 重置流量账本设置：删除节点倍率手动覆盖，并将账本设置恢复默认。
+  /// 不会删除周期和流量统计（那是 [clearTrafficHistory] 的职责）。
+  Future<void> resetLedgerSettings({DateTime? now}) async {
+    await transaction(() async {
       await trafficNodeMultipliers.delete().go();
+      await (trafficLedgerSettings.delete()
+            ..where((t) => t.id.equals(1)))
+          .go();
     });
   }
 
   // ---------- 小时聚合流量 ----------
 
-  /// 批量 upsert 小时聚合记录。同主键记录累加 bytesUp/bytesDown，
-  /// multiplier 保持首次写入值（历史不变性）。updatedAt 刷新为最新。
+  /// 批量 upsert 小时聚合记录。同主键记录累加 bytesUp/bytesDown 与
+  /// estimatedBilledBytesUp/estimatedBilledBytesDown。
+  /// multiplier 保持首次写入值（展示用途）。updatedAt 刷新为最新。
   /// 入参为 freezed model（DateTime），内部转换为 epoch millis 存储。
+  ///
+  /// 调用方（采集服务）负责在构造 [HourlyTrafficStat] 时按
+  /// "本次增量 × 当时有效倍率"计算 estimatedBilledBytes*。
   Future<void> upsertHourlyStats(Iterable<HourlyTrafficStat> stats) async {
     if (stats.isEmpty) return;
     for (final s in stats) {
@@ -232,6 +312,8 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
             bytesUp: Value(s.bytesUp),
             bytesDown: Value(s.bytesDown),
             multiplier: Value(s.multiplier),
+            estimatedBilledBytesUp: Value(s.estimatedBilledBytesUp),
+            estimatedBilledBytesDown: Value(s.estimatedBilledBytesDown),
             updatedAt: updatedAtMs,
           ),
         );
@@ -247,6 +329,11 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
             .write(TrafficHourlyStatsCompanion(
           bytesUp: Value(existing.bytesUp + s.bytesUp),
           bytesDown: Value(existing.bytesDown + s.bytesDown),
+          estimatedBilledBytesUp: Value(
+              existing.estimatedBilledBytesUp + s.estimatedBilledBytesUp),
+          estimatedBilledBytesDown: Value(
+              existing.estimatedBilledBytesDown +
+                  s.estimatedBilledBytesDown),
           updatedAt: Value(updatedAtMs),
         ));
       }
@@ -263,10 +350,12 @@ class TrafficLedgerDao extends DatabaseAccessor<Database>
     final q = trafficHourlyStats.select()
       ..where((t) => t.periodId.equals(periodId));
     if (from != null) {
-      q.where((t) => t.hourStart.isBiggerOrEqualValue(from.millisecondsSinceEpoch));
+      q.where(
+          (t) => t.hourStart.isBiggerOrEqualValue(from.millisecondsSinceEpoch));
     }
     if (to != null) {
-      q.where((t) => t.hourStart.isSmallerThanValue(to.millisecondsSinceEpoch));
+      q.where((t) =>
+          t.hourStart.isSmallerThanValue(to.millisecondsSinceEpoch));
     }
     q.orderBy([(t) => OrderingTerm.asc(t.hourStart)]);
     return q.map((row) => row.toModel());
@@ -341,7 +430,6 @@ extension RawTrafficBillingPeriodExt on TrafficBillingPeriod {
         endAt: endAt == null
             ? null
             : DateTime.fromMillisecondsSinceEpoch(endAt!),
-        autoMonthSwitch: autoMonthSwitch,
         createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt),
       );
 }
@@ -357,6 +445,8 @@ extension RawTrafficHourlyStatExt on TrafficHourlyStat {
         bytesUp: bytesUp,
         bytesDown: bytesDown,
         multiplier: multiplier,
+        estimatedBilledBytesUp: estimatedBilledBytesUp,
+        estimatedBilledBytesDown: estimatedBilledBytesDown,
         updatedAt: DateTime.fromMillisecondsSinceEpoch(updatedAt),
       );
 }
@@ -370,13 +460,21 @@ extension RawTrafficNodeMultiplierExt on TrafficNodeMultiplier {
       );
 }
 
+extension RawTrafficLedgerSettingExt on TrafficLedgerSetting {
+  LedgerSettings toModel() => LedgerSettings(
+        autoCycleEnabled: autoCycleEnabled,
+        billingCycleDay: billingCycleDay,
+        billingCycleHour: billingCycleHour,
+        updatedAt: DateTime.fromMillisecondsSinceEpoch(updatedAt),
+      );
+}
+
 extension BillingPeriodCompanionExt on BillingPeriod {
   TrafficBillingPeriodsCompanion toCompanion() => TrafficBillingPeriodsCompanion(
         id: Value(id),
         label: Value(label),
         startAt: Value(startAt.millisecondsSinceEpoch),
         endAt: Value(endAt?.millisecondsSinceEpoch),
-        autoMonthSwitch: Value(autoMonthSwitch),
         createdAt: Value(createdAt.millisecondsSinceEpoch),
       );
 }

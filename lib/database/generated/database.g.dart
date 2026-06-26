@@ -3439,21 +3439,6 @@ class $TrafficBillingPeriodsTable extends TrafficBillingPeriods
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _autoMonthSwitchMeta = const VerificationMeta(
-    'autoMonthSwitch',
-  );
-  @override
-  late final GeneratedColumn<bool> autoMonthSwitch = GeneratedColumn<bool>(
-    'auto_month_switch',
-    aliasedName,
-    false,
-    type: DriftSqlType.bool,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("auto_month_switch" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
-  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -3466,14 +3451,7 @@ class $TrafficBillingPeriodsTable extends TrafficBillingPeriods
     requiredDuringInsert: true,
   );
   @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    label,
-    startAt,
-    endAt,
-    autoMonthSwitch,
-    createdAt,
-  ];
+  List<GeneratedColumn> get $columns => [id, label, startAt, endAt, createdAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -3509,15 +3487,6 @@ class $TrafficBillingPeriodsTable extends TrafficBillingPeriods
         endAt.isAcceptableOrUnknown(data['end_at']!, _endAtMeta),
       );
     }
-    if (data.containsKey('auto_month_switch')) {
-      context.handle(
-        _autoMonthSwitchMeta,
-        autoMonthSwitch.isAcceptableOrUnknown(
-          data['auto_month_switch']!,
-          _autoMonthSwitchMeta,
-        ),
-      );
-    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -3551,10 +3520,6 @@ class $TrafficBillingPeriodsTable extends TrafficBillingPeriods
         DriftSqlType.int,
         data['${effectivePrefix}end_at'],
       ),
-      autoMonthSwitch: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}auto_month_switch'],
-      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
@@ -3578,16 +3543,12 @@ class TrafficBillingPeriod extends DataClass
 
   /// 周期结束时间（epoch millis）。null 表示当前活动周期。
   final int? endAt;
-
-  /// 是否按月自动切换周期。
-  final bool autoMonthSwitch;
   final int createdAt;
   const TrafficBillingPeriod({
     required this.id,
     this.label,
     required this.startAt,
     this.endAt,
-    required this.autoMonthSwitch,
     required this.createdAt,
   });
   @override
@@ -3601,7 +3562,6 @@ class TrafficBillingPeriod extends DataClass
     if (!nullToAbsent || endAt != null) {
       map['end_at'] = Variable<int>(endAt);
     }
-    map['auto_month_switch'] = Variable<bool>(autoMonthSwitch);
     map['created_at'] = Variable<int>(createdAt);
     return map;
   }
@@ -3616,7 +3576,6 @@ class TrafficBillingPeriod extends DataClass
       endAt: endAt == null && nullToAbsent
           ? const Value.absent()
           : Value(endAt),
-      autoMonthSwitch: Value(autoMonthSwitch),
       createdAt: Value(createdAt),
     );
   }
@@ -3631,7 +3590,6 @@ class TrafficBillingPeriod extends DataClass
       label: serializer.fromJson<String?>(json['label']),
       startAt: serializer.fromJson<int>(json['startAt']),
       endAt: serializer.fromJson<int?>(json['endAt']),
-      autoMonthSwitch: serializer.fromJson<bool>(json['autoMonthSwitch']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
     );
   }
@@ -3643,7 +3601,6 @@ class TrafficBillingPeriod extends DataClass
       'label': serializer.toJson<String?>(label),
       'startAt': serializer.toJson<int>(startAt),
       'endAt': serializer.toJson<int?>(endAt),
-      'autoMonthSwitch': serializer.toJson<bool>(autoMonthSwitch),
       'createdAt': serializer.toJson<int>(createdAt),
     };
   }
@@ -3653,14 +3610,12 @@ class TrafficBillingPeriod extends DataClass
     Value<String?> label = const Value.absent(),
     int? startAt,
     Value<int?> endAt = const Value.absent(),
-    bool? autoMonthSwitch,
     int? createdAt,
   }) => TrafficBillingPeriod(
     id: id ?? this.id,
     label: label.present ? label.value : this.label,
     startAt: startAt ?? this.startAt,
     endAt: endAt.present ? endAt.value : this.endAt,
-    autoMonthSwitch: autoMonthSwitch ?? this.autoMonthSwitch,
     createdAt: createdAt ?? this.createdAt,
   );
   TrafficBillingPeriod copyWithCompanion(TrafficBillingPeriodsCompanion data) {
@@ -3669,9 +3624,6 @@ class TrafficBillingPeriod extends DataClass
       label: data.label.present ? data.label.value : this.label,
       startAt: data.startAt.present ? data.startAt.value : this.startAt,
       endAt: data.endAt.present ? data.endAt.value : this.endAt,
-      autoMonthSwitch: data.autoMonthSwitch.present
-          ? data.autoMonthSwitch.value
-          : this.autoMonthSwitch,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -3683,15 +3635,13 @@ class TrafficBillingPeriod extends DataClass
           ..write('label: $label, ')
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
-          ..write('autoMonthSwitch: $autoMonthSwitch, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, label, startAt, endAt, autoMonthSwitch, createdAt);
+  int get hashCode => Object.hash(id, label, startAt, endAt, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3700,7 +3650,6 @@ class TrafficBillingPeriod extends DataClass
           other.label == this.label &&
           other.startAt == this.startAt &&
           other.endAt == this.endAt &&
-          other.autoMonthSwitch == this.autoMonthSwitch &&
           other.createdAt == this.createdAt);
 }
 
@@ -3710,14 +3659,12 @@ class TrafficBillingPeriodsCompanion
   final Value<String?> label;
   final Value<int> startAt;
   final Value<int?> endAt;
-  final Value<bool> autoMonthSwitch;
   final Value<int> createdAt;
   const TrafficBillingPeriodsCompanion({
     this.id = const Value.absent(),
     this.label = const Value.absent(),
     this.startAt = const Value.absent(),
     this.endAt = const Value.absent(),
-    this.autoMonthSwitch = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   TrafficBillingPeriodsCompanion.insert({
@@ -3725,7 +3672,6 @@ class TrafficBillingPeriodsCompanion
     this.label = const Value.absent(),
     required int startAt,
     this.endAt = const Value.absent(),
-    this.autoMonthSwitch = const Value.absent(),
     required int createdAt,
   }) : startAt = Value(startAt),
        createdAt = Value(createdAt);
@@ -3734,7 +3680,6 @@ class TrafficBillingPeriodsCompanion
     Expression<String>? label,
     Expression<int>? startAt,
     Expression<int>? endAt,
-    Expression<bool>? autoMonthSwitch,
     Expression<int>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -3742,7 +3687,6 @@ class TrafficBillingPeriodsCompanion
       if (label != null) 'label': label,
       if (startAt != null) 'start_at': startAt,
       if (endAt != null) 'end_at': endAt,
-      if (autoMonthSwitch != null) 'auto_month_switch': autoMonthSwitch,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -3752,7 +3696,6 @@ class TrafficBillingPeriodsCompanion
     Value<String?>? label,
     Value<int>? startAt,
     Value<int?>? endAt,
-    Value<bool>? autoMonthSwitch,
     Value<int>? createdAt,
   }) {
     return TrafficBillingPeriodsCompanion(
@@ -3760,7 +3703,6 @@ class TrafficBillingPeriodsCompanion
       label: label ?? this.label,
       startAt: startAt ?? this.startAt,
       endAt: endAt ?? this.endAt,
-      autoMonthSwitch: autoMonthSwitch ?? this.autoMonthSwitch,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -3780,9 +3722,6 @@ class TrafficBillingPeriodsCompanion
     if (endAt.present) {
       map['end_at'] = Variable<int>(endAt.value);
     }
-    if (autoMonthSwitch.present) {
-      map['auto_month_switch'] = Variable<bool>(autoMonthSwitch.value);
-    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -3796,7 +3735,6 @@ class TrafficBillingPeriodsCompanion
           ..write('label: $label, ')
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
-          ..write('autoMonthSwitch: $autoMonthSwitch, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -3914,6 +3852,29 @@ class $TrafficHourlyStatsTable extends TrafficHourlyStats
     requiredDuringInsert: false,
     defaultValue: const Constant(1.0),
   );
+  static const VerificationMeta _estimatedBilledBytesUpMeta =
+      const VerificationMeta('estimatedBilledBytesUp');
+  @override
+  late final GeneratedColumn<int> estimatedBilledBytesUp = GeneratedColumn<int>(
+    'estimated_billed_bytes_up',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _estimatedBilledBytesDownMeta =
+      const VerificationMeta('estimatedBilledBytesDown');
+  @override
+  late final GeneratedColumn<int> estimatedBilledBytesDown =
+      GeneratedColumn<int>(
+        'estimated_billed_bytes_down',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -3936,6 +3897,8 @@ class $TrafficHourlyStatsTable extends TrafficHourlyStats
     bytesUp,
     bytesDown,
     multiplier,
+    estimatedBilledBytesUp,
+    estimatedBilledBytesDown,
     updatedAt,
   ];
   @override
@@ -4011,6 +3974,24 @@ class $TrafficHourlyStatsTable extends TrafficHourlyStats
         multiplier.isAcceptableOrUnknown(data['multiplier']!, _multiplierMeta),
       );
     }
+    if (data.containsKey('estimated_billed_bytes_up')) {
+      context.handle(
+        _estimatedBilledBytesUpMeta,
+        estimatedBilledBytesUp.isAcceptableOrUnknown(
+          data['estimated_billed_bytes_up']!,
+          _estimatedBilledBytesUpMeta,
+        ),
+      );
+    }
+    if (data.containsKey('estimated_billed_bytes_down')) {
+      context.handle(
+        _estimatedBilledBytesDownMeta,
+        estimatedBilledBytesDown.isAcceptableOrUnknown(
+          data['estimated_billed_bytes_down']!,
+          _estimatedBilledBytesDownMeta,
+        ),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -4071,6 +4052,14 @@ class $TrafficHourlyStatsTable extends TrafficHourlyStats
         DriftSqlType.double,
         data['${effectivePrefix}multiplier'],
       )!,
+      estimatedBilledBytesUp: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}estimated_billed_bytes_up'],
+      )!,
+      estimatedBilledBytesDown: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}estimated_billed_bytes_down'],
+      )!,
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}updated_at'],
@@ -4105,8 +4094,14 @@ class TrafficHourlyStat extends DataClass
   final int bytesUp;
   final int bytesDown;
 
-  /// 入账时倍率快照。
+  /// 首次入账时倍率快照，仅用于展示。
   final double multiplier;
+
+  /// 入账时按"本次增量上行 × 当时有效倍率"累计的预计扣量。
+  final int estimatedBilledBytesUp;
+
+  /// 入账时按"本次增量下行 × 当时有效倍率"累计的预计扣量。
+  final int estimatedBilledBytesDown;
   final int updatedAt;
   const TrafficHourlyStat({
     required this.periodId,
@@ -4118,6 +4113,8 @@ class TrafficHourlyStat extends DataClass
     required this.bytesUp,
     required this.bytesDown,
     required this.multiplier,
+    required this.estimatedBilledBytesUp,
+    required this.estimatedBilledBytesDown,
     required this.updatedAt,
   });
   @override
@@ -4132,6 +4129,10 @@ class TrafficHourlyStat extends DataClass
     map['bytes_up'] = Variable<int>(bytesUp);
     map['bytes_down'] = Variable<int>(bytesDown);
     map['multiplier'] = Variable<double>(multiplier);
+    map['estimated_billed_bytes_up'] = Variable<int>(estimatedBilledBytesUp);
+    map['estimated_billed_bytes_down'] = Variable<int>(
+      estimatedBilledBytesDown,
+    );
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
   }
@@ -4147,6 +4148,8 @@ class TrafficHourlyStat extends DataClass
       bytesUp: Value(bytesUp),
       bytesDown: Value(bytesDown),
       multiplier: Value(multiplier),
+      estimatedBilledBytesUp: Value(estimatedBilledBytesUp),
+      estimatedBilledBytesDown: Value(estimatedBilledBytesDown),
       updatedAt: Value(updatedAt),
     );
   }
@@ -4166,6 +4169,12 @@ class TrafficHourlyStat extends DataClass
       bytesUp: serializer.fromJson<int>(json['bytesUp']),
       bytesDown: serializer.fromJson<int>(json['bytesDown']),
       multiplier: serializer.fromJson<double>(json['multiplier']),
+      estimatedBilledBytesUp: serializer.fromJson<int>(
+        json['estimatedBilledBytesUp'],
+      ),
+      estimatedBilledBytesDown: serializer.fromJson<int>(
+        json['estimatedBilledBytesDown'],
+      ),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
   }
@@ -4182,6 +4191,10 @@ class TrafficHourlyStat extends DataClass
       'bytesUp': serializer.toJson<int>(bytesUp),
       'bytesDown': serializer.toJson<int>(bytesDown),
       'multiplier': serializer.toJson<double>(multiplier),
+      'estimatedBilledBytesUp': serializer.toJson<int>(estimatedBilledBytesUp),
+      'estimatedBilledBytesDown': serializer.toJson<int>(
+        estimatedBilledBytesDown,
+      ),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
   }
@@ -4196,6 +4209,8 @@ class TrafficHourlyStat extends DataClass
     int? bytesUp,
     int? bytesDown,
     double? multiplier,
+    int? estimatedBilledBytesUp,
+    int? estimatedBilledBytesDown,
     int? updatedAt,
   }) => TrafficHourlyStat(
     periodId: periodId ?? this.periodId,
@@ -4207,6 +4222,10 @@ class TrafficHourlyStat extends DataClass
     bytesUp: bytesUp ?? this.bytesUp,
     bytesDown: bytesDown ?? this.bytesDown,
     multiplier: multiplier ?? this.multiplier,
+    estimatedBilledBytesUp:
+        estimatedBilledBytesUp ?? this.estimatedBilledBytesUp,
+    estimatedBilledBytesDown:
+        estimatedBilledBytesDown ?? this.estimatedBilledBytesDown,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   TrafficHourlyStat copyWithCompanion(TrafficHourlyStatsCompanion data) {
@@ -4224,6 +4243,12 @@ class TrafficHourlyStat extends DataClass
       multiplier: data.multiplier.present
           ? data.multiplier.value
           : this.multiplier,
+      estimatedBilledBytesUp: data.estimatedBilledBytesUp.present
+          ? data.estimatedBilledBytesUp.value
+          : this.estimatedBilledBytesUp,
+      estimatedBilledBytesDown: data.estimatedBilledBytesDown.present
+          ? data.estimatedBilledBytesDown.value
+          : this.estimatedBilledBytesDown,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -4240,6 +4265,8 @@ class TrafficHourlyStat extends DataClass
           ..write('bytesUp: $bytesUp, ')
           ..write('bytesDown: $bytesDown, ')
           ..write('multiplier: $multiplier, ')
+          ..write('estimatedBilledBytesUp: $estimatedBilledBytesUp, ')
+          ..write('estimatedBilledBytesDown: $estimatedBilledBytesDown, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -4256,6 +4283,8 @@ class TrafficHourlyStat extends DataClass
     bytesUp,
     bytesDown,
     multiplier,
+    estimatedBilledBytesUp,
+    estimatedBilledBytesDown,
     updatedAt,
   );
   @override
@@ -4271,6 +4300,8 @@ class TrafficHourlyStat extends DataClass
           other.bytesUp == this.bytesUp &&
           other.bytesDown == this.bytesDown &&
           other.multiplier == this.multiplier &&
+          other.estimatedBilledBytesUp == this.estimatedBilledBytesUp &&
+          other.estimatedBilledBytesDown == this.estimatedBilledBytesDown &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -4284,6 +4315,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
   final Value<int> bytesUp;
   final Value<int> bytesDown;
   final Value<double> multiplier;
+  final Value<int> estimatedBilledBytesUp;
+  final Value<int> estimatedBilledBytesDown;
   final Value<int> updatedAt;
   final Value<int> rowid;
   const TrafficHourlyStatsCompanion({
@@ -4296,6 +4329,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
     this.bytesUp = const Value.absent(),
     this.bytesDown = const Value.absent(),
     this.multiplier = const Value.absent(),
+    this.estimatedBilledBytesUp = const Value.absent(),
+    this.estimatedBilledBytesDown = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -4309,6 +4344,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
     this.bytesUp = const Value.absent(),
     this.bytesDown = const Value.absent(),
     this.multiplier = const Value.absent(),
+    this.estimatedBilledBytesUp = const Value.absent(),
+    this.estimatedBilledBytesDown = const Value.absent(),
     required int updatedAt,
     this.rowid = const Value.absent(),
   }) : periodId = Value(periodId),
@@ -4324,6 +4361,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
     Expression<int>? bytesUp,
     Expression<int>? bytesDown,
     Expression<double>? multiplier,
+    Expression<int>? estimatedBilledBytesUp,
+    Expression<int>? estimatedBilledBytesDown,
     Expression<int>? updatedAt,
     Expression<int>? rowid,
   }) {
@@ -4337,6 +4376,10 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
       if (bytesUp != null) 'bytes_up': bytesUp,
       if (bytesDown != null) 'bytes_down': bytesDown,
       if (multiplier != null) 'multiplier': multiplier,
+      if (estimatedBilledBytesUp != null)
+        'estimated_billed_bytes_up': estimatedBilledBytesUp,
+      if (estimatedBilledBytesDown != null)
+        'estimated_billed_bytes_down': estimatedBilledBytesDown,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
     });
@@ -4352,6 +4395,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
     Value<int>? bytesUp,
     Value<int>? bytesDown,
     Value<double>? multiplier,
+    Value<int>? estimatedBilledBytesUp,
+    Value<int>? estimatedBilledBytesDown,
     Value<int>? updatedAt,
     Value<int>? rowid,
   }) {
@@ -4365,6 +4410,10 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
       bytesUp: bytesUp ?? this.bytesUp,
       bytesDown: bytesDown ?? this.bytesDown,
       multiplier: multiplier ?? this.multiplier,
+      estimatedBilledBytesUp:
+          estimatedBilledBytesUp ?? this.estimatedBilledBytesUp,
+      estimatedBilledBytesDown:
+          estimatedBilledBytesDown ?? this.estimatedBilledBytesDown,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
     );
@@ -4400,6 +4449,16 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
     if (multiplier.present) {
       map['multiplier'] = Variable<double>(multiplier.value);
     }
+    if (estimatedBilledBytesUp.present) {
+      map['estimated_billed_bytes_up'] = Variable<int>(
+        estimatedBilledBytesUp.value,
+      );
+    }
+    if (estimatedBilledBytesDown.present) {
+      map['estimated_billed_bytes_down'] = Variable<int>(
+        estimatedBilledBytesDown.value,
+      );
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>(updatedAt.value);
     }
@@ -4421,6 +4480,8 @@ class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
           ..write('bytesUp: $bytesUp, ')
           ..write('bytesDown: $bytesDown, ')
           ..write('multiplier: $multiplier, ')
+          ..write('estimatedBilledBytesUp: $estimatedBilledBytesUp, ')
+          ..write('estimatedBilledBytesDown: $estimatedBilledBytesDown, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -4764,6 +4825,382 @@ class TrafficNodeMultipliersCompanion
   }
 }
 
+class $TrafficLedgerSettingsTable extends TrafficLedgerSettings
+    with TableInfo<$TrafficLedgerSettingsTable, TrafficLedgerSetting> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TrafficLedgerSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _autoCycleEnabledMeta = const VerificationMeta(
+    'autoCycleEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> autoCycleEnabled = GeneratedColumn<bool>(
+    'auto_cycle_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_cycle_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _billingCycleDayMeta = const VerificationMeta(
+    'billingCycleDay',
+  );
+  @override
+  late final GeneratedColumn<int> billingCycleDay = GeneratedColumn<int>(
+    'billing_cycle_day',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _billingCycleHourMeta = const VerificationMeta(
+    'billingCycleHour',
+  );
+  @override
+  late final GeneratedColumn<int> billingCycleHour = GeneratedColumn<int>(
+    'billing_cycle_hour',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    autoCycleEnabled,
+    billingCycleDay,
+    billingCycleHour,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'traffic_ledger_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TrafficLedgerSetting> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('auto_cycle_enabled')) {
+      context.handle(
+        _autoCycleEnabledMeta,
+        autoCycleEnabled.isAcceptableOrUnknown(
+          data['auto_cycle_enabled']!,
+          _autoCycleEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('billing_cycle_day')) {
+      context.handle(
+        _billingCycleDayMeta,
+        billingCycleDay.isAcceptableOrUnknown(
+          data['billing_cycle_day']!,
+          _billingCycleDayMeta,
+        ),
+      );
+    }
+    if (data.containsKey('billing_cycle_hour')) {
+      context.handle(
+        _billingCycleHourMeta,
+        billingCycleHour.isAcceptableOrUnknown(
+          data['billing_cycle_hour']!,
+          _billingCycleHourMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TrafficLedgerSetting map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TrafficLedgerSetting(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      autoCycleEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_cycle_enabled'],
+      )!,
+      billingCycleDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}billing_cycle_day'],
+      )!,
+      billingCycleHour: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}billing_cycle_hour'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TrafficLedgerSettingsTable createAlias(String alias) {
+    return $TrafficLedgerSettingsTable(attachedDatabase, alias);
+  }
+}
+
+class TrafficLedgerSetting extends DataClass
+    implements Insertable<TrafficLedgerSetting> {
+  /// 固定为 1，保证全局唯一一行。
+  final int id;
+
+  /// 是否启用自动周期切换。
+  final bool autoCycleEnabled;
+
+  /// 每月刷新日，取值范围 1–28。
+  final int billingCycleDay;
+
+  /// 刷新小时。第一版固定为 0（00:00），预留。
+  final int billingCycleHour;
+  final int updatedAt;
+  const TrafficLedgerSetting({
+    required this.id,
+    required this.autoCycleEnabled,
+    required this.billingCycleDay,
+    required this.billingCycleHour,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['auto_cycle_enabled'] = Variable<bool>(autoCycleEnabled);
+    map['billing_cycle_day'] = Variable<int>(billingCycleDay);
+    map['billing_cycle_hour'] = Variable<int>(billingCycleHour);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  TrafficLedgerSettingsCompanion toCompanion(bool nullToAbsent) {
+    return TrafficLedgerSettingsCompanion(
+      id: Value(id),
+      autoCycleEnabled: Value(autoCycleEnabled),
+      billingCycleDay: Value(billingCycleDay),
+      billingCycleHour: Value(billingCycleHour),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory TrafficLedgerSetting.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TrafficLedgerSetting(
+      id: serializer.fromJson<int>(json['id']),
+      autoCycleEnabled: serializer.fromJson<bool>(json['autoCycleEnabled']),
+      billingCycleDay: serializer.fromJson<int>(json['billingCycleDay']),
+      billingCycleHour: serializer.fromJson<int>(json['billingCycleHour']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'autoCycleEnabled': serializer.toJson<bool>(autoCycleEnabled),
+      'billingCycleDay': serializer.toJson<int>(billingCycleDay),
+      'billingCycleHour': serializer.toJson<int>(billingCycleHour),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  TrafficLedgerSetting copyWith({
+    int? id,
+    bool? autoCycleEnabled,
+    int? billingCycleDay,
+    int? billingCycleHour,
+    int? updatedAt,
+  }) => TrafficLedgerSetting(
+    id: id ?? this.id,
+    autoCycleEnabled: autoCycleEnabled ?? this.autoCycleEnabled,
+    billingCycleDay: billingCycleDay ?? this.billingCycleDay,
+    billingCycleHour: billingCycleHour ?? this.billingCycleHour,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  TrafficLedgerSetting copyWithCompanion(TrafficLedgerSettingsCompanion data) {
+    return TrafficLedgerSetting(
+      id: data.id.present ? data.id.value : this.id,
+      autoCycleEnabled: data.autoCycleEnabled.present
+          ? data.autoCycleEnabled.value
+          : this.autoCycleEnabled,
+      billingCycleDay: data.billingCycleDay.present
+          ? data.billingCycleDay.value
+          : this.billingCycleDay,
+      billingCycleHour: data.billingCycleHour.present
+          ? data.billingCycleHour.value
+          : this.billingCycleHour,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrafficLedgerSetting(')
+          ..write('id: $id, ')
+          ..write('autoCycleEnabled: $autoCycleEnabled, ')
+          ..write('billingCycleDay: $billingCycleDay, ')
+          ..write('billingCycleHour: $billingCycleHour, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    autoCycleEnabled,
+    billingCycleDay,
+    billingCycleHour,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TrafficLedgerSetting &&
+          other.id == this.id &&
+          other.autoCycleEnabled == this.autoCycleEnabled &&
+          other.billingCycleDay == this.billingCycleDay &&
+          other.billingCycleHour == this.billingCycleHour &&
+          other.updatedAt == this.updatedAt);
+}
+
+class TrafficLedgerSettingsCompanion
+    extends UpdateCompanion<TrafficLedgerSetting> {
+  final Value<int> id;
+  final Value<bool> autoCycleEnabled;
+  final Value<int> billingCycleDay;
+  final Value<int> billingCycleHour;
+  final Value<int> updatedAt;
+  const TrafficLedgerSettingsCompanion({
+    this.id = const Value.absent(),
+    this.autoCycleEnabled = const Value.absent(),
+    this.billingCycleDay = const Value.absent(),
+    this.billingCycleHour = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+  });
+  TrafficLedgerSettingsCompanion.insert({
+    this.id = const Value.absent(),
+    this.autoCycleEnabled = const Value.absent(),
+    this.billingCycleDay = const Value.absent(),
+    this.billingCycleHour = const Value.absent(),
+    required int updatedAt,
+  }) : updatedAt = Value(updatedAt);
+  static Insertable<TrafficLedgerSetting> custom({
+    Expression<int>? id,
+    Expression<bool>? autoCycleEnabled,
+    Expression<int>? billingCycleDay,
+    Expression<int>? billingCycleHour,
+    Expression<int>? updatedAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (autoCycleEnabled != null) 'auto_cycle_enabled': autoCycleEnabled,
+      if (billingCycleDay != null) 'billing_cycle_day': billingCycleDay,
+      if (billingCycleHour != null) 'billing_cycle_hour': billingCycleHour,
+      if (updatedAt != null) 'updated_at': updatedAt,
+    });
+  }
+
+  TrafficLedgerSettingsCompanion copyWith({
+    Value<int>? id,
+    Value<bool>? autoCycleEnabled,
+    Value<int>? billingCycleDay,
+    Value<int>? billingCycleHour,
+    Value<int>? updatedAt,
+  }) {
+    return TrafficLedgerSettingsCompanion(
+      id: id ?? this.id,
+      autoCycleEnabled: autoCycleEnabled ?? this.autoCycleEnabled,
+      billingCycleDay: billingCycleDay ?? this.billingCycleDay,
+      billingCycleHour: billingCycleHour ?? this.billingCycleHour,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (autoCycleEnabled.present) {
+      map['auto_cycle_enabled'] = Variable<bool>(autoCycleEnabled.value);
+    }
+    if (billingCycleDay.present) {
+      map['billing_cycle_day'] = Variable<int>(billingCycleDay.value);
+    }
+    if (billingCycleHour.present) {
+      map['billing_cycle_hour'] = Variable<int>(billingCycleHour.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrafficLedgerSettingsCompanion(')
+          ..write('id: $id, ')
+          ..write('autoCycleEnabled: $autoCycleEnabled, ')
+          ..write('billingCycleDay: $billingCycleDay, ')
+          ..write('billingCycleHour: $billingCycleHour, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$Database extends GeneratedDatabase {
   _$Database(QueryExecutor e) : super(e);
   $DatabaseManager get managers => $DatabaseManager(this);
@@ -4781,6 +5218,8 @@ abstract class _$Database extends GeneratedDatabase {
       $TrafficHourlyStatsTable(this);
   late final $TrafficNodeMultipliersTable trafficNodeMultipliers =
       $TrafficNodeMultipliersTable(this);
+  late final $TrafficLedgerSettingsTable trafficLedgerSettings =
+      $TrafficLedgerSettingsTable(this);
   late final Index idxRuleTarget = Index(
     'idx_rule_target',
     'CREATE INDEX idx_rule_target ON rules (rule_target)',
@@ -4831,6 +5270,7 @@ abstract class _$Database extends GeneratedDatabase {
     trafficBillingPeriods,
     trafficHourlyStats,
     trafficNodeMultipliers,
+    trafficLedgerSettings,
     idxRuleTarget,
     idxProfileSceneOrder,
     idxProfileNameOrder,
@@ -7178,7 +7618,6 @@ typedef $$TrafficBillingPeriodsTableCreateCompanionBuilder =
       Value<String?> label,
       required int startAt,
       Value<int?> endAt,
-      Value<bool> autoMonthSwitch,
       required int createdAt,
     });
 typedef $$TrafficBillingPeriodsTableUpdateCompanionBuilder =
@@ -7187,7 +7626,6 @@ typedef $$TrafficBillingPeriodsTableUpdateCompanionBuilder =
       Value<String?> label,
       Value<int> startAt,
       Value<int?> endAt,
-      Value<bool> autoMonthSwitch,
       Value<int> createdAt,
     });
 
@@ -7257,11 +7695,6 @@ class $$TrafficBillingPeriodsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get autoMonthSwitch => $composableBuilder(
-    column: $table.autoMonthSwitch,
-    builder: (column) => ColumnFilters(column),
-  );
-
   ColumnFilters<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
@@ -7322,11 +7755,6 @@ class $$TrafficBillingPeriodsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get autoMonthSwitch => $composableBuilder(
-    column: $table.autoMonthSwitch,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -7353,11 +7781,6 @@ class $$TrafficBillingPeriodsTableAnnotationComposer
 
   GeneratedColumn<int> get endAt =>
       $composableBuilder(column: $table.endAt, builder: (column) => column);
-
-  GeneratedColumn<bool> get autoMonthSwitch => $composableBuilder(
-    column: $table.autoMonthSwitch,
-    builder: (column) => column,
-  );
 
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -7432,14 +7855,12 @@ class $$TrafficBillingPeriodsTableTableManager
                 Value<String?> label = const Value.absent(),
                 Value<int> startAt = const Value.absent(),
                 Value<int?> endAt = const Value.absent(),
-                Value<bool> autoMonthSwitch = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
               }) => TrafficBillingPeriodsCompanion(
                 id: id,
                 label: label,
                 startAt: startAt,
                 endAt: endAt,
-                autoMonthSwitch: autoMonthSwitch,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -7448,14 +7869,12 @@ class $$TrafficBillingPeriodsTableTableManager
                 Value<String?> label = const Value.absent(),
                 required int startAt,
                 Value<int?> endAt = const Value.absent(),
-                Value<bool> autoMonthSwitch = const Value.absent(),
                 required int createdAt,
               }) => TrafficBillingPeriodsCompanion.insert(
                 id: id,
                 label: label,
                 startAt: startAt,
                 endAt: endAt,
-                autoMonthSwitch: autoMonthSwitch,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -7527,6 +7946,8 @@ typedef $$TrafficHourlyStatsTableCreateCompanionBuilder =
       Value<int> bytesUp,
       Value<int> bytesDown,
       Value<double> multiplier,
+      Value<int> estimatedBilledBytesUp,
+      Value<int> estimatedBilledBytesDown,
       required int updatedAt,
       Value<int> rowid,
     });
@@ -7541,6 +7962,8 @@ typedef $$TrafficHourlyStatsTableUpdateCompanionBuilder =
       Value<int> bytesUp,
       Value<int> bytesDown,
       Value<double> multiplier,
+      Value<int> estimatedBilledBytesUp,
+      Value<int> estimatedBilledBytesDown,
       Value<int> updatedAt,
       Value<int> rowid,
     });
@@ -7630,6 +8053,16 @@ class $$TrafficHourlyStatsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<int> get estimatedBilledBytesUp => $composableBuilder(
+    column: $table.estimatedBilledBytesUp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get estimatedBilledBytesDown => $composableBuilder(
+    column: $table.estimatedBilledBytesDown,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
@@ -7709,6 +8142,16 @@ class $$TrafficHourlyStatsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get estimatedBilledBytesUp => $composableBuilder(
+    column: $table.estimatedBilledBytesUp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get estimatedBilledBytesDown => $composableBuilder(
+    column: $table.estimatedBilledBytesDown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -7773,6 +8216,16 @@ class $$TrafficHourlyStatsTableAnnotationComposer
 
   GeneratedColumn<double> get multiplier => $composableBuilder(
     column: $table.multiplier,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get estimatedBilledBytesUp => $composableBuilder(
+    column: $table.estimatedBilledBytesUp,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get estimatedBilledBytesDown => $composableBuilder(
+    column: $table.estimatedBilledBytesDown,
     builder: (column) => column,
   );
 
@@ -7846,6 +8299,8 @@ class $$TrafficHourlyStatsTableTableManager
                 Value<int> bytesUp = const Value.absent(),
                 Value<int> bytesDown = const Value.absent(),
                 Value<double> multiplier = const Value.absent(),
+                Value<int> estimatedBilledBytesUp = const Value.absent(),
+                Value<int> estimatedBilledBytesDown = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => TrafficHourlyStatsCompanion(
@@ -7858,6 +8313,8 @@ class $$TrafficHourlyStatsTableTableManager
                 bytesUp: bytesUp,
                 bytesDown: bytesDown,
                 multiplier: multiplier,
+                estimatedBilledBytesUp: estimatedBilledBytesUp,
+                estimatedBilledBytesDown: estimatedBilledBytesDown,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -7872,6 +8329,8 @@ class $$TrafficHourlyStatsTableTableManager
                 Value<int> bytesUp = const Value.absent(),
                 Value<int> bytesDown = const Value.absent(),
                 Value<double> multiplier = const Value.absent(),
+                Value<int> estimatedBilledBytesUp = const Value.absent(),
+                Value<int> estimatedBilledBytesDown = const Value.absent(),
                 required int updatedAt,
                 Value<int> rowid = const Value.absent(),
               }) => TrafficHourlyStatsCompanion.insert(
@@ -7884,6 +8343,8 @@ class $$TrafficHourlyStatsTableTableManager
                 bytesUp: bytesUp,
                 bytesDown: bytesDown,
                 multiplier: multiplier,
+                estimatedBilledBytesUp: estimatedBilledBytesUp,
+                estimatedBilledBytesDown: estimatedBilledBytesDown,
                 updatedAt: updatedAt,
                 rowid: rowid,
               ),
@@ -8160,6 +8621,225 @@ typedef $$TrafficNodeMultipliersTableProcessedTableManager =
       TrafficNodeMultiplier,
       PrefetchHooks Function()
     >;
+typedef $$TrafficLedgerSettingsTableCreateCompanionBuilder =
+    TrafficLedgerSettingsCompanion Function({
+      Value<int> id,
+      Value<bool> autoCycleEnabled,
+      Value<int> billingCycleDay,
+      Value<int> billingCycleHour,
+      required int updatedAt,
+    });
+typedef $$TrafficLedgerSettingsTableUpdateCompanionBuilder =
+    TrafficLedgerSettingsCompanion Function({
+      Value<int> id,
+      Value<bool> autoCycleEnabled,
+      Value<int> billingCycleDay,
+      Value<int> billingCycleHour,
+      Value<int> updatedAt,
+    });
+
+class $$TrafficLedgerSettingsTableFilterComposer
+    extends Composer<_$Database, $TrafficLedgerSettingsTable> {
+  $$TrafficLedgerSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoCycleEnabled => $composableBuilder(
+    column: $table.autoCycleEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get billingCycleDay => $composableBuilder(
+    column: $table.billingCycleDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get billingCycleHour => $composableBuilder(
+    column: $table.billingCycleHour,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TrafficLedgerSettingsTableOrderingComposer
+    extends Composer<_$Database, $TrafficLedgerSettingsTable> {
+  $$TrafficLedgerSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get autoCycleEnabled => $composableBuilder(
+    column: $table.autoCycleEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get billingCycleDay => $composableBuilder(
+    column: $table.billingCycleDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get billingCycleHour => $composableBuilder(
+    column: $table.billingCycleHour,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TrafficLedgerSettingsTableAnnotationComposer
+    extends Composer<_$Database, $TrafficLedgerSettingsTable> {
+  $$TrafficLedgerSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<bool> get autoCycleEnabled => $composableBuilder(
+    column: $table.autoCycleEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get billingCycleDay => $composableBuilder(
+    column: $table.billingCycleDay,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get billingCycleHour => $composableBuilder(
+    column: $table.billingCycleHour,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$TrafficLedgerSettingsTableTableManager
+    extends
+        RootTableManager<
+          _$Database,
+          $TrafficLedgerSettingsTable,
+          TrafficLedgerSetting,
+          $$TrafficLedgerSettingsTableFilterComposer,
+          $$TrafficLedgerSettingsTableOrderingComposer,
+          $$TrafficLedgerSettingsTableAnnotationComposer,
+          $$TrafficLedgerSettingsTableCreateCompanionBuilder,
+          $$TrafficLedgerSettingsTableUpdateCompanionBuilder,
+          (
+            TrafficLedgerSetting,
+            BaseReferences<
+              _$Database,
+              $TrafficLedgerSettingsTable,
+              TrafficLedgerSetting
+            >,
+          ),
+          TrafficLedgerSetting,
+          PrefetchHooks Function()
+        > {
+  $$TrafficLedgerSettingsTableTableManager(
+    _$Database db,
+    $TrafficLedgerSettingsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TrafficLedgerSettingsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$TrafficLedgerSettingsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$TrafficLedgerSettingsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<bool> autoCycleEnabled = const Value.absent(),
+                Value<int> billingCycleDay = const Value.absent(),
+                Value<int> billingCycleHour = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+              }) => TrafficLedgerSettingsCompanion(
+                id: id,
+                autoCycleEnabled: autoCycleEnabled,
+                billingCycleDay: billingCycleDay,
+                billingCycleHour: billingCycleHour,
+                updatedAt: updatedAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<bool> autoCycleEnabled = const Value.absent(),
+                Value<int> billingCycleDay = const Value.absent(),
+                Value<int> billingCycleHour = const Value.absent(),
+                required int updatedAt,
+              }) => TrafficLedgerSettingsCompanion.insert(
+                id: id,
+                autoCycleEnabled: autoCycleEnabled,
+                billingCycleDay: billingCycleDay,
+                billingCycleHour: billingCycleHour,
+                updatedAt: updatedAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TrafficLedgerSettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$Database,
+      $TrafficLedgerSettingsTable,
+      TrafficLedgerSetting,
+      $$TrafficLedgerSettingsTableFilterComposer,
+      $$TrafficLedgerSettingsTableOrderingComposer,
+      $$TrafficLedgerSettingsTableAnnotationComposer,
+      $$TrafficLedgerSettingsTableCreateCompanionBuilder,
+      $$TrafficLedgerSettingsTableUpdateCompanionBuilder,
+      (
+        TrafficLedgerSetting,
+        BaseReferences<
+          _$Database,
+          $TrafficLedgerSettingsTable,
+          TrafficLedgerSetting
+        >,
+      ),
+      TrafficLedgerSetting,
+      PrefetchHooks Function()
+    >;
 
 class $DatabaseManager {
   final _$Database _db;
@@ -8185,6 +8865,8 @@ class $DatabaseManager {
         _db,
         _db.trafficNodeMultipliers,
       );
+  $$TrafficLedgerSettingsTableTableManager get trafficLedgerSettings =>
+      $$TrafficLedgerSettingsTableTableManager(_db, _db.trafficLedgerSettings);
 }
 
 mixin _$ProfilesDaoMixin on DatabaseAccessor<Database> {
@@ -8267,6 +8949,8 @@ mixin _$TrafficLedgerDaoMixin on DatabaseAccessor<Database> {
       attachedDatabase.trafficHourlyStats;
   $TrafficNodeMultipliersTable get trafficNodeMultipliers =>
       attachedDatabase.trafficNodeMultipliers;
+  $TrafficLedgerSettingsTable get trafficLedgerSettings =>
+      attachedDatabase.trafficLedgerSettings;
   TrafficLedgerDaoManager get managers => TrafficLedgerDaoManager(this);
 }
 
@@ -8287,5 +8971,10 @@ class TrafficLedgerDaoManager {
       $$TrafficNodeMultipliersTableTableManager(
         _db.attachedDatabase,
         _db.trafficNodeMultipliers,
+      );
+  $$TrafficLedgerSettingsTableTableManager get trafficLedgerSettings =>
+      $$TrafficLedgerSettingsTableTableManager(
+        _db.attachedDatabase,
+        _db.trafficLedgerSettings,
       );
 }
