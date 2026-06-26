@@ -3391,6 +3391,1379 @@ class IconRecordsCompanion extends UpdateCompanion<IconRecord> {
   }
 }
 
+class $TrafficBillingPeriodsTable extends TrafficBillingPeriods
+    with TableInfo<$TrafficBillingPeriodsTable, TrafficBillingPeriod> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TrafficBillingPeriodsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startAtMeta = const VerificationMeta(
+    'startAt',
+  );
+  @override
+  late final GeneratedColumn<int> startAt = GeneratedColumn<int>(
+    'start_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endAtMeta = const VerificationMeta('endAt');
+  @override
+  late final GeneratedColumn<int> endAt = GeneratedColumn<int>(
+    'end_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _autoMonthSwitchMeta = const VerificationMeta(
+    'autoMonthSwitch',
+  );
+  @override
+  late final GeneratedColumn<bool> autoMonthSwitch = GeneratedColumn<bool>(
+    'auto_month_switch',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_month_switch" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    label,
+    startAt,
+    endAt,
+    autoMonthSwitch,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'traffic_billing_periods';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TrafficBillingPeriod> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+        _labelMeta,
+        label.isAcceptableOrUnknown(data['label']!, _labelMeta),
+      );
+    }
+    if (data.containsKey('start_at')) {
+      context.handle(
+        _startAtMeta,
+        startAt.isAcceptableOrUnknown(data['start_at']!, _startAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startAtMeta);
+    }
+    if (data.containsKey('end_at')) {
+      context.handle(
+        _endAtMeta,
+        endAt.isAcceptableOrUnknown(data['end_at']!, _endAtMeta),
+      );
+    }
+    if (data.containsKey('auto_month_switch')) {
+      context.handle(
+        _autoMonthSwitchMeta,
+        autoMonthSwitch.isAcceptableOrUnknown(
+          data['auto_month_switch']!,
+          _autoMonthSwitchMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TrafficBillingPeriod map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TrafficBillingPeriod(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      ),
+      startAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}start_at'],
+      )!,
+      endAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}end_at'],
+      ),
+      autoMonthSwitch: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}auto_month_switch'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TrafficBillingPeriodsTable createAlias(String alias) {
+    return $TrafficBillingPeriodsTable(attachedDatabase, alias);
+  }
+}
+
+class TrafficBillingPeriod extends DataClass
+    implements Insertable<TrafficBillingPeriod> {
+  final int id;
+  final String? label;
+
+  /// 周期开始时间（epoch millis）。
+  final int startAt;
+
+  /// 周期结束时间（epoch millis）。null 表示当前活动周期。
+  final int? endAt;
+
+  /// 是否按月自动切换周期。
+  final bool autoMonthSwitch;
+  final int createdAt;
+  const TrafficBillingPeriod({
+    required this.id,
+    this.label,
+    required this.startAt,
+    this.endAt,
+    required this.autoMonthSwitch,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || label != null) {
+      map['label'] = Variable<String>(label);
+    }
+    map['start_at'] = Variable<int>(startAt);
+    if (!nullToAbsent || endAt != null) {
+      map['end_at'] = Variable<int>(endAt);
+    }
+    map['auto_month_switch'] = Variable<bool>(autoMonthSwitch);
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  TrafficBillingPeriodsCompanion toCompanion(bool nullToAbsent) {
+    return TrafficBillingPeriodsCompanion(
+      id: Value(id),
+      label: label == null && nullToAbsent
+          ? const Value.absent()
+          : Value(label),
+      startAt: Value(startAt),
+      endAt: endAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endAt),
+      autoMonthSwitch: Value(autoMonthSwitch),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory TrafficBillingPeriod.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TrafficBillingPeriod(
+      id: serializer.fromJson<int>(json['id']),
+      label: serializer.fromJson<String?>(json['label']),
+      startAt: serializer.fromJson<int>(json['startAt']),
+      endAt: serializer.fromJson<int?>(json['endAt']),
+      autoMonthSwitch: serializer.fromJson<bool>(json['autoMonthSwitch']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'label': serializer.toJson<String?>(label),
+      'startAt': serializer.toJson<int>(startAt),
+      'endAt': serializer.toJson<int?>(endAt),
+      'autoMonthSwitch': serializer.toJson<bool>(autoMonthSwitch),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  TrafficBillingPeriod copyWith({
+    int? id,
+    Value<String?> label = const Value.absent(),
+    int? startAt,
+    Value<int?> endAt = const Value.absent(),
+    bool? autoMonthSwitch,
+    int? createdAt,
+  }) => TrafficBillingPeriod(
+    id: id ?? this.id,
+    label: label.present ? label.value : this.label,
+    startAt: startAt ?? this.startAt,
+    endAt: endAt.present ? endAt.value : this.endAt,
+    autoMonthSwitch: autoMonthSwitch ?? this.autoMonthSwitch,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  TrafficBillingPeriod copyWithCompanion(TrafficBillingPeriodsCompanion data) {
+    return TrafficBillingPeriod(
+      id: data.id.present ? data.id.value : this.id,
+      label: data.label.present ? data.label.value : this.label,
+      startAt: data.startAt.present ? data.startAt.value : this.startAt,
+      endAt: data.endAt.present ? data.endAt.value : this.endAt,
+      autoMonthSwitch: data.autoMonthSwitch.present
+          ? data.autoMonthSwitch.value
+          : this.autoMonthSwitch,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrafficBillingPeriod(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('startAt: $startAt, ')
+          ..write('endAt: $endAt, ')
+          ..write('autoMonthSwitch: $autoMonthSwitch, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, label, startAt, endAt, autoMonthSwitch, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TrafficBillingPeriod &&
+          other.id == this.id &&
+          other.label == this.label &&
+          other.startAt == this.startAt &&
+          other.endAt == this.endAt &&
+          other.autoMonthSwitch == this.autoMonthSwitch &&
+          other.createdAt == this.createdAt);
+}
+
+class TrafficBillingPeriodsCompanion
+    extends UpdateCompanion<TrafficBillingPeriod> {
+  final Value<int> id;
+  final Value<String?> label;
+  final Value<int> startAt;
+  final Value<int?> endAt;
+  final Value<bool> autoMonthSwitch;
+  final Value<int> createdAt;
+  const TrafficBillingPeriodsCompanion({
+    this.id = const Value.absent(),
+    this.label = const Value.absent(),
+    this.startAt = const Value.absent(),
+    this.endAt = const Value.absent(),
+    this.autoMonthSwitch = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  TrafficBillingPeriodsCompanion.insert({
+    this.id = const Value.absent(),
+    this.label = const Value.absent(),
+    required int startAt,
+    this.endAt = const Value.absent(),
+    this.autoMonthSwitch = const Value.absent(),
+    required int createdAt,
+  }) : startAt = Value(startAt),
+       createdAt = Value(createdAt);
+  static Insertable<TrafficBillingPeriod> custom({
+    Expression<int>? id,
+    Expression<String>? label,
+    Expression<int>? startAt,
+    Expression<int>? endAt,
+    Expression<bool>? autoMonthSwitch,
+    Expression<int>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (label != null) 'label': label,
+      if (startAt != null) 'start_at': startAt,
+      if (endAt != null) 'end_at': endAt,
+      if (autoMonthSwitch != null) 'auto_month_switch': autoMonthSwitch,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  TrafficBillingPeriodsCompanion copyWith({
+    Value<int>? id,
+    Value<String?>? label,
+    Value<int>? startAt,
+    Value<int?>? endAt,
+    Value<bool>? autoMonthSwitch,
+    Value<int>? createdAt,
+  }) {
+    return TrafficBillingPeriodsCompanion(
+      id: id ?? this.id,
+      label: label ?? this.label,
+      startAt: startAt ?? this.startAt,
+      endAt: endAt ?? this.endAt,
+      autoMonthSwitch: autoMonthSwitch ?? this.autoMonthSwitch,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (startAt.present) {
+      map['start_at'] = Variable<int>(startAt.value);
+    }
+    if (endAt.present) {
+      map['end_at'] = Variable<int>(endAt.value);
+    }
+    if (autoMonthSwitch.present) {
+      map['auto_month_switch'] = Variable<bool>(autoMonthSwitch.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrafficBillingPeriodsCompanion(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('startAt: $startAt, ')
+          ..write('endAt: $endAt, ')
+          ..write('autoMonthSwitch: $autoMonthSwitch, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TrafficHourlyStatsTable extends TrafficHourlyStats
+    with TableInfo<$TrafficHourlyStatsTable, TrafficHourlyStat> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TrafficHourlyStatsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _periodIdMeta = const VerificationMeta(
+    'periodId',
+  );
+  @override
+  late final GeneratedColumn<int> periodId = GeneratedColumn<int>(
+    'period_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES traffic_billing_periods (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _hourStartMeta = const VerificationMeta(
+    'hourStart',
+  );
+  @override
+  late final GeneratedColumn<int> hourStart = GeneratedColumn<int>(
+    'hour_start',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _appIdentifierMeta = const VerificationMeta(
+    'appIdentifier',
+  );
+  @override
+  late final GeneratedColumn<String> appIdentifier = GeneratedColumn<String>(
+    'app_identifier',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _nodeNameMeta = const VerificationMeta(
+    'nodeName',
+  );
+  @override
+  late final GeneratedColumn<String> nodeName = GeneratedColumn<String>(
+    'node_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _domainMeta = const VerificationMeta('domain');
+  @override
+  late final GeneratedColumn<String> domain = GeneratedColumn<String>(
+    'domain',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _ruleMeta = const VerificationMeta('rule');
+  @override
+  late final GeneratedColumn<String> rule = GeneratedColumn<String>(
+    'rule',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _bytesUpMeta = const VerificationMeta(
+    'bytesUp',
+  );
+  @override
+  late final GeneratedColumn<int> bytesUp = GeneratedColumn<int>(
+    'bytes_up',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _bytesDownMeta = const VerificationMeta(
+    'bytesDown',
+  );
+  @override
+  late final GeneratedColumn<int> bytesDown = GeneratedColumn<int>(
+    'bytes_down',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _multiplierMeta = const VerificationMeta(
+    'multiplier',
+  );
+  @override
+  late final GeneratedColumn<double> multiplier = GeneratedColumn<double>(
+    'multiplier',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1.0),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    periodId,
+    hourStart,
+    appIdentifier,
+    nodeName,
+    domain,
+    rule,
+    bytesUp,
+    bytesDown,
+    multiplier,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'traffic_hourly_stats';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TrafficHourlyStat> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('period_id')) {
+      context.handle(
+        _periodIdMeta,
+        periodId.isAcceptableOrUnknown(data['period_id']!, _periodIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_periodIdMeta);
+    }
+    if (data.containsKey('hour_start')) {
+      context.handle(
+        _hourStartMeta,
+        hourStart.isAcceptableOrUnknown(data['hour_start']!, _hourStartMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hourStartMeta);
+    }
+    if (data.containsKey('app_identifier')) {
+      context.handle(
+        _appIdentifierMeta,
+        appIdentifier.isAcceptableOrUnknown(
+          data['app_identifier']!,
+          _appIdentifierMeta,
+        ),
+      );
+    }
+    if (data.containsKey('node_name')) {
+      context.handle(
+        _nodeNameMeta,
+        nodeName.isAcceptableOrUnknown(data['node_name']!, _nodeNameMeta),
+      );
+    }
+    if (data.containsKey('domain')) {
+      context.handle(
+        _domainMeta,
+        domain.isAcceptableOrUnknown(data['domain']!, _domainMeta),
+      );
+    }
+    if (data.containsKey('rule')) {
+      context.handle(
+        _ruleMeta,
+        rule.isAcceptableOrUnknown(data['rule']!, _ruleMeta),
+      );
+    }
+    if (data.containsKey('bytes_up')) {
+      context.handle(
+        _bytesUpMeta,
+        bytesUp.isAcceptableOrUnknown(data['bytes_up']!, _bytesUpMeta),
+      );
+    }
+    if (data.containsKey('bytes_down')) {
+      context.handle(
+        _bytesDownMeta,
+        bytesDown.isAcceptableOrUnknown(data['bytes_down']!, _bytesDownMeta),
+      );
+    }
+    if (data.containsKey('multiplier')) {
+      context.handle(
+        _multiplierMeta,
+        multiplier.isAcceptableOrUnknown(data['multiplier']!, _multiplierMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {
+    periodId,
+    hourStart,
+    appIdentifier,
+    nodeName,
+    domain,
+    rule,
+  };
+  @override
+  TrafficHourlyStat map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TrafficHourlyStat(
+      periodId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}period_id'],
+      )!,
+      hourStart: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}hour_start'],
+      )!,
+      appIdentifier: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}app_identifier'],
+      )!,
+      nodeName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}node_name'],
+      )!,
+      domain: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}domain'],
+      )!,
+      rule: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rule'],
+      )!,
+      bytesUp: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bytes_up'],
+      )!,
+      bytesDown: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bytes_down'],
+      )!,
+      multiplier: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}multiplier'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TrafficHourlyStatsTable createAlias(String alias) {
+    return $TrafficHourlyStatsTable(attachedDatabase, alias);
+  }
+}
+
+class TrafficHourlyStat extends DataClass
+    implements Insertable<TrafficHourlyStat> {
+  final int periodId;
+
+  /// 小时起始时间（epoch millis，对齐到整点）。
+  final int hourStart;
+
+  /// 应用标识。'' = 未知，'__unattributed__' = 未归因代理流量。
+  final String appIdentifier;
+
+  /// 节点名。'' = 未知。
+  final String nodeName;
+
+  /// 域名。'' = 未知。
+  final String domain;
+
+  /// 规则。'' = 未知。
+  final String rule;
+  final int bytesUp;
+  final int bytesDown;
+
+  /// 入账时倍率快照。
+  final double multiplier;
+  final int updatedAt;
+  const TrafficHourlyStat({
+    required this.periodId,
+    required this.hourStart,
+    required this.appIdentifier,
+    required this.nodeName,
+    required this.domain,
+    required this.rule,
+    required this.bytesUp,
+    required this.bytesDown,
+    required this.multiplier,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['period_id'] = Variable<int>(periodId);
+    map['hour_start'] = Variable<int>(hourStart);
+    map['app_identifier'] = Variable<String>(appIdentifier);
+    map['node_name'] = Variable<String>(nodeName);
+    map['domain'] = Variable<String>(domain);
+    map['rule'] = Variable<String>(rule);
+    map['bytes_up'] = Variable<int>(bytesUp);
+    map['bytes_down'] = Variable<int>(bytesDown);
+    map['multiplier'] = Variable<double>(multiplier);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  TrafficHourlyStatsCompanion toCompanion(bool nullToAbsent) {
+    return TrafficHourlyStatsCompanion(
+      periodId: Value(periodId),
+      hourStart: Value(hourStart),
+      appIdentifier: Value(appIdentifier),
+      nodeName: Value(nodeName),
+      domain: Value(domain),
+      rule: Value(rule),
+      bytesUp: Value(bytesUp),
+      bytesDown: Value(bytesDown),
+      multiplier: Value(multiplier),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory TrafficHourlyStat.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TrafficHourlyStat(
+      periodId: serializer.fromJson<int>(json['periodId']),
+      hourStart: serializer.fromJson<int>(json['hourStart']),
+      appIdentifier: serializer.fromJson<String>(json['appIdentifier']),
+      nodeName: serializer.fromJson<String>(json['nodeName']),
+      domain: serializer.fromJson<String>(json['domain']),
+      rule: serializer.fromJson<String>(json['rule']),
+      bytesUp: serializer.fromJson<int>(json['bytesUp']),
+      bytesDown: serializer.fromJson<int>(json['bytesDown']),
+      multiplier: serializer.fromJson<double>(json['multiplier']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'periodId': serializer.toJson<int>(periodId),
+      'hourStart': serializer.toJson<int>(hourStart),
+      'appIdentifier': serializer.toJson<String>(appIdentifier),
+      'nodeName': serializer.toJson<String>(nodeName),
+      'domain': serializer.toJson<String>(domain),
+      'rule': serializer.toJson<String>(rule),
+      'bytesUp': serializer.toJson<int>(bytesUp),
+      'bytesDown': serializer.toJson<int>(bytesDown),
+      'multiplier': serializer.toJson<double>(multiplier),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  TrafficHourlyStat copyWith({
+    int? periodId,
+    int? hourStart,
+    String? appIdentifier,
+    String? nodeName,
+    String? domain,
+    String? rule,
+    int? bytesUp,
+    int? bytesDown,
+    double? multiplier,
+    int? updatedAt,
+  }) => TrafficHourlyStat(
+    periodId: periodId ?? this.periodId,
+    hourStart: hourStart ?? this.hourStart,
+    appIdentifier: appIdentifier ?? this.appIdentifier,
+    nodeName: nodeName ?? this.nodeName,
+    domain: domain ?? this.domain,
+    rule: rule ?? this.rule,
+    bytesUp: bytesUp ?? this.bytesUp,
+    bytesDown: bytesDown ?? this.bytesDown,
+    multiplier: multiplier ?? this.multiplier,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  TrafficHourlyStat copyWithCompanion(TrafficHourlyStatsCompanion data) {
+    return TrafficHourlyStat(
+      periodId: data.periodId.present ? data.periodId.value : this.periodId,
+      hourStart: data.hourStart.present ? data.hourStart.value : this.hourStart,
+      appIdentifier: data.appIdentifier.present
+          ? data.appIdentifier.value
+          : this.appIdentifier,
+      nodeName: data.nodeName.present ? data.nodeName.value : this.nodeName,
+      domain: data.domain.present ? data.domain.value : this.domain,
+      rule: data.rule.present ? data.rule.value : this.rule,
+      bytesUp: data.bytesUp.present ? data.bytesUp.value : this.bytesUp,
+      bytesDown: data.bytesDown.present ? data.bytesDown.value : this.bytesDown,
+      multiplier: data.multiplier.present
+          ? data.multiplier.value
+          : this.multiplier,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrafficHourlyStat(')
+          ..write('periodId: $periodId, ')
+          ..write('hourStart: $hourStart, ')
+          ..write('appIdentifier: $appIdentifier, ')
+          ..write('nodeName: $nodeName, ')
+          ..write('domain: $domain, ')
+          ..write('rule: $rule, ')
+          ..write('bytesUp: $bytesUp, ')
+          ..write('bytesDown: $bytesDown, ')
+          ..write('multiplier: $multiplier, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    periodId,
+    hourStart,
+    appIdentifier,
+    nodeName,
+    domain,
+    rule,
+    bytesUp,
+    bytesDown,
+    multiplier,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TrafficHourlyStat &&
+          other.periodId == this.periodId &&
+          other.hourStart == this.hourStart &&
+          other.appIdentifier == this.appIdentifier &&
+          other.nodeName == this.nodeName &&
+          other.domain == this.domain &&
+          other.rule == this.rule &&
+          other.bytesUp == this.bytesUp &&
+          other.bytesDown == this.bytesDown &&
+          other.multiplier == this.multiplier &&
+          other.updatedAt == this.updatedAt);
+}
+
+class TrafficHourlyStatsCompanion extends UpdateCompanion<TrafficHourlyStat> {
+  final Value<int> periodId;
+  final Value<int> hourStart;
+  final Value<String> appIdentifier;
+  final Value<String> nodeName;
+  final Value<String> domain;
+  final Value<String> rule;
+  final Value<int> bytesUp;
+  final Value<int> bytesDown;
+  final Value<double> multiplier;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const TrafficHourlyStatsCompanion({
+    this.periodId = const Value.absent(),
+    this.hourStart = const Value.absent(),
+    this.appIdentifier = const Value.absent(),
+    this.nodeName = const Value.absent(),
+    this.domain = const Value.absent(),
+    this.rule = const Value.absent(),
+    this.bytesUp = const Value.absent(),
+    this.bytesDown = const Value.absent(),
+    this.multiplier = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TrafficHourlyStatsCompanion.insert({
+    required int periodId,
+    required int hourStart,
+    this.appIdentifier = const Value.absent(),
+    this.nodeName = const Value.absent(),
+    this.domain = const Value.absent(),
+    this.rule = const Value.absent(),
+    this.bytesUp = const Value.absent(),
+    this.bytesDown = const Value.absent(),
+    this.multiplier = const Value.absent(),
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : periodId = Value(periodId),
+       hourStart = Value(hourStart),
+       updatedAt = Value(updatedAt);
+  static Insertable<TrafficHourlyStat> custom({
+    Expression<int>? periodId,
+    Expression<int>? hourStart,
+    Expression<String>? appIdentifier,
+    Expression<String>? nodeName,
+    Expression<String>? domain,
+    Expression<String>? rule,
+    Expression<int>? bytesUp,
+    Expression<int>? bytesDown,
+    Expression<double>? multiplier,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (periodId != null) 'period_id': periodId,
+      if (hourStart != null) 'hour_start': hourStart,
+      if (appIdentifier != null) 'app_identifier': appIdentifier,
+      if (nodeName != null) 'node_name': nodeName,
+      if (domain != null) 'domain': domain,
+      if (rule != null) 'rule': rule,
+      if (bytesUp != null) 'bytes_up': bytesUp,
+      if (bytesDown != null) 'bytes_down': bytesDown,
+      if (multiplier != null) 'multiplier': multiplier,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TrafficHourlyStatsCompanion copyWith({
+    Value<int>? periodId,
+    Value<int>? hourStart,
+    Value<String>? appIdentifier,
+    Value<String>? nodeName,
+    Value<String>? domain,
+    Value<String>? rule,
+    Value<int>? bytesUp,
+    Value<int>? bytesDown,
+    Value<double>? multiplier,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return TrafficHourlyStatsCompanion(
+      periodId: periodId ?? this.periodId,
+      hourStart: hourStart ?? this.hourStart,
+      appIdentifier: appIdentifier ?? this.appIdentifier,
+      nodeName: nodeName ?? this.nodeName,
+      domain: domain ?? this.domain,
+      rule: rule ?? this.rule,
+      bytesUp: bytesUp ?? this.bytesUp,
+      bytesDown: bytesDown ?? this.bytesDown,
+      multiplier: multiplier ?? this.multiplier,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (periodId.present) {
+      map['period_id'] = Variable<int>(periodId.value);
+    }
+    if (hourStart.present) {
+      map['hour_start'] = Variable<int>(hourStart.value);
+    }
+    if (appIdentifier.present) {
+      map['app_identifier'] = Variable<String>(appIdentifier.value);
+    }
+    if (nodeName.present) {
+      map['node_name'] = Variable<String>(nodeName.value);
+    }
+    if (domain.present) {
+      map['domain'] = Variable<String>(domain.value);
+    }
+    if (rule.present) {
+      map['rule'] = Variable<String>(rule.value);
+    }
+    if (bytesUp.present) {
+      map['bytes_up'] = Variable<int>(bytesUp.value);
+    }
+    if (bytesDown.present) {
+      map['bytes_down'] = Variable<int>(bytesDown.value);
+    }
+    if (multiplier.present) {
+      map['multiplier'] = Variable<double>(multiplier.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrafficHourlyStatsCompanion(')
+          ..write('periodId: $periodId, ')
+          ..write('hourStart: $hourStart, ')
+          ..write('appIdentifier: $appIdentifier, ')
+          ..write('nodeName: $nodeName, ')
+          ..write('domain: $domain, ')
+          ..write('rule: $rule, ')
+          ..write('bytesUp: $bytesUp, ')
+          ..write('bytesDown: $bytesDown, ')
+          ..write('multiplier: $multiplier, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TrafficNodeMultipliersTable extends TrafficNodeMultipliers
+    with TableInfo<$TrafficNodeMultipliersTable, TrafficNodeMultiplier> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TrafficNodeMultipliersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _nodeNameMeta = const VerificationMeta(
+    'nodeName',
+  );
+  @override
+  late final GeneratedColumn<String> nodeName = GeneratedColumn<String>(
+    'node_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _parsedMultiplierMeta = const VerificationMeta(
+    'parsedMultiplier',
+  );
+  @override
+  late final GeneratedColumn<double> parsedMultiplier = GeneratedColumn<double>(
+    'parsed_multiplier',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1.0),
+  );
+  static const VerificationMeta _manualMultiplierMeta = const VerificationMeta(
+    'manualMultiplier',
+  );
+  @override
+  late final GeneratedColumn<double> manualMultiplier = GeneratedColumn<double>(
+    'manual_multiplier',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    nodeName,
+    parsedMultiplier,
+    manualMultiplier,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'traffic_node_multipliers';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TrafficNodeMultiplier> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('node_name')) {
+      context.handle(
+        _nodeNameMeta,
+        nodeName.isAcceptableOrUnknown(data['node_name']!, _nodeNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nodeNameMeta);
+    }
+    if (data.containsKey('parsed_multiplier')) {
+      context.handle(
+        _parsedMultiplierMeta,
+        parsedMultiplier.isAcceptableOrUnknown(
+          data['parsed_multiplier']!,
+          _parsedMultiplierMeta,
+        ),
+      );
+    }
+    if (data.containsKey('manual_multiplier')) {
+      context.handle(
+        _manualMultiplierMeta,
+        manualMultiplier.isAcceptableOrUnknown(
+          data['manual_multiplier']!,
+          _manualMultiplierMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {nodeName};
+  @override
+  TrafficNodeMultiplier map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TrafficNodeMultiplier(
+      nodeName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}node_name'],
+      )!,
+      parsedMultiplier: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}parsed_multiplier'],
+      )!,
+      manualMultiplier: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}manual_multiplier'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TrafficNodeMultipliersTable createAlias(String alias) {
+    return $TrafficNodeMultipliersTable(attachedDatabase, alias);
+  }
+}
+
+class TrafficNodeMultiplier extends DataClass
+    implements Insertable<TrafficNodeMultiplier> {
+  final String nodeName;
+  final double parsedMultiplier;
+  final double? manualMultiplier;
+  final int updatedAt;
+  const TrafficNodeMultiplier({
+    required this.nodeName,
+    required this.parsedMultiplier,
+    this.manualMultiplier,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['node_name'] = Variable<String>(nodeName);
+    map['parsed_multiplier'] = Variable<double>(parsedMultiplier);
+    if (!nullToAbsent || manualMultiplier != null) {
+      map['manual_multiplier'] = Variable<double>(manualMultiplier);
+    }
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  TrafficNodeMultipliersCompanion toCompanion(bool nullToAbsent) {
+    return TrafficNodeMultipliersCompanion(
+      nodeName: Value(nodeName),
+      parsedMultiplier: Value(parsedMultiplier),
+      manualMultiplier: manualMultiplier == null && nullToAbsent
+          ? const Value.absent()
+          : Value(manualMultiplier),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory TrafficNodeMultiplier.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TrafficNodeMultiplier(
+      nodeName: serializer.fromJson<String>(json['nodeName']),
+      parsedMultiplier: serializer.fromJson<double>(json['parsedMultiplier']),
+      manualMultiplier: serializer.fromJson<double?>(json['manualMultiplier']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'nodeName': serializer.toJson<String>(nodeName),
+      'parsedMultiplier': serializer.toJson<double>(parsedMultiplier),
+      'manualMultiplier': serializer.toJson<double?>(manualMultiplier),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  TrafficNodeMultiplier copyWith({
+    String? nodeName,
+    double? parsedMultiplier,
+    Value<double?> manualMultiplier = const Value.absent(),
+    int? updatedAt,
+  }) => TrafficNodeMultiplier(
+    nodeName: nodeName ?? this.nodeName,
+    parsedMultiplier: parsedMultiplier ?? this.parsedMultiplier,
+    manualMultiplier: manualMultiplier.present
+        ? manualMultiplier.value
+        : this.manualMultiplier,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  TrafficNodeMultiplier copyWithCompanion(
+    TrafficNodeMultipliersCompanion data,
+  ) {
+    return TrafficNodeMultiplier(
+      nodeName: data.nodeName.present ? data.nodeName.value : this.nodeName,
+      parsedMultiplier: data.parsedMultiplier.present
+          ? data.parsedMultiplier.value
+          : this.parsedMultiplier,
+      manualMultiplier: data.manualMultiplier.present
+          ? data.manualMultiplier.value
+          : this.manualMultiplier,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrafficNodeMultiplier(')
+          ..write('nodeName: $nodeName, ')
+          ..write('parsedMultiplier: $parsedMultiplier, ')
+          ..write('manualMultiplier: $manualMultiplier, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(nodeName, parsedMultiplier, manualMultiplier, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TrafficNodeMultiplier &&
+          other.nodeName == this.nodeName &&
+          other.parsedMultiplier == this.parsedMultiplier &&
+          other.manualMultiplier == this.manualMultiplier &&
+          other.updatedAt == this.updatedAt);
+}
+
+class TrafficNodeMultipliersCompanion
+    extends UpdateCompanion<TrafficNodeMultiplier> {
+  final Value<String> nodeName;
+  final Value<double> parsedMultiplier;
+  final Value<double?> manualMultiplier;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const TrafficNodeMultipliersCompanion({
+    this.nodeName = const Value.absent(),
+    this.parsedMultiplier = const Value.absent(),
+    this.manualMultiplier = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TrafficNodeMultipliersCompanion.insert({
+    required String nodeName,
+    this.parsedMultiplier = const Value.absent(),
+    this.manualMultiplier = const Value.absent(),
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : nodeName = Value(nodeName),
+       updatedAt = Value(updatedAt);
+  static Insertable<TrafficNodeMultiplier> custom({
+    Expression<String>? nodeName,
+    Expression<double>? parsedMultiplier,
+    Expression<double>? manualMultiplier,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (nodeName != null) 'node_name': nodeName,
+      if (parsedMultiplier != null) 'parsed_multiplier': parsedMultiplier,
+      if (manualMultiplier != null) 'manual_multiplier': manualMultiplier,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TrafficNodeMultipliersCompanion copyWith({
+    Value<String>? nodeName,
+    Value<double>? parsedMultiplier,
+    Value<double?>? manualMultiplier,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return TrafficNodeMultipliersCompanion(
+      nodeName: nodeName ?? this.nodeName,
+      parsedMultiplier: parsedMultiplier ?? this.parsedMultiplier,
+      manualMultiplier: manualMultiplier ?? this.manualMultiplier,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (nodeName.present) {
+      map['node_name'] = Variable<String>(nodeName.value);
+    }
+    if (parsedMultiplier.present) {
+      map['parsed_multiplier'] = Variable<double>(parsedMultiplier.value);
+    }
+    if (manualMultiplier.present) {
+      map['manual_multiplier'] = Variable<double>(manualMultiplier.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TrafficNodeMultipliersCompanion(')
+          ..write('nodeName: $nodeName, ')
+          ..write('parsedMultiplier: $parsedMultiplier, ')
+          ..write('manualMultiplier: $manualMultiplier, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$Database extends GeneratedDatabase {
   _$Database(QueryExecutor e) : super(e);
   $DatabaseManager get managers => $DatabaseManager(this);
@@ -3402,6 +4775,12 @@ abstract class _$Database extends GeneratedDatabase {
   );
   late final $ProxyGroupsTable proxyGroups = $ProxyGroupsTable(this);
   late final $IconRecordsTable iconRecords = $IconRecordsTable(this);
+  late final $TrafficBillingPeriodsTable trafficBillingPeriods =
+      $TrafficBillingPeriodsTable(this);
+  late final $TrafficHourlyStatsTable trafficHourlyStats =
+      $TrafficHourlyStatsTable(this);
+  late final $TrafficNodeMultipliersTable trafficNodeMultipliers =
+      $TrafficNodeMultipliersTable(this);
   late final Index idxRuleTarget = Index(
     'idx_rule_target',
     'CREATE INDEX idx_rule_target ON rules (rule_target)',
@@ -3418,11 +4797,26 @@ abstract class _$Database extends GeneratedDatabase {
     'last_accessed_url',
     'CREATE INDEX last_accessed_url ON icon_records (last_accessed, url)',
   );
+  late final Index idxTrafficPeriodHour = Index(
+    'idx_traffic_period_hour',
+    'CREATE INDEX idx_traffic_period_hour ON traffic_hourly_stats (period_id, hour_start)',
+  );
+  late final Index idxTrafficApp = Index(
+    'idx_traffic_app',
+    'CREATE INDEX idx_traffic_app ON traffic_hourly_stats (period_id, app_identifier)',
+  );
+  late final Index idxTrafficNode = Index(
+    'idx_traffic_node',
+    'CREATE INDEX idx_traffic_node ON traffic_hourly_stats (period_id, node_name)',
+  );
   late final ProfilesDao profilesDao = ProfilesDao(this as Database);
   late final ScriptsDao scriptsDao = ScriptsDao(this as Database);
   late final RulesDao rulesDao = RulesDao(this as Database);
   late final ProxyGroupsDao proxyGroupsDao = ProxyGroupsDao(this as Database);
   late final IconRecordsDao iconRecordsDao = IconRecordsDao(this as Database);
+  late final TrafficLedgerDao trafficLedgerDao = TrafficLedgerDao(
+    this as Database,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3434,10 +4828,16 @@ abstract class _$Database extends GeneratedDatabase {
     profileRuleLinks,
     proxyGroups,
     iconRecords,
+    trafficBillingPeriods,
+    trafficHourlyStats,
+    trafficNodeMultipliers,
     idxRuleTarget,
     idxProfileSceneOrder,
     idxProfileNameOrder,
     lastAccessedUrl,
+    idxTrafficPeriodHour,
+    idxTrafficApp,
+    idxTrafficNode,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3461,6 +4861,13 @@ abstract class _$Database extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('proxy_groups', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'traffic_billing_periods',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('traffic_hourly_stats', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -5765,6 +7172,994 @@ typedef $$IconRecordsTableProcessedTableManager =
       IconRecord,
       PrefetchHooks Function()
     >;
+typedef $$TrafficBillingPeriodsTableCreateCompanionBuilder =
+    TrafficBillingPeriodsCompanion Function({
+      Value<int> id,
+      Value<String?> label,
+      required int startAt,
+      Value<int?> endAt,
+      Value<bool> autoMonthSwitch,
+      required int createdAt,
+    });
+typedef $$TrafficBillingPeriodsTableUpdateCompanionBuilder =
+    TrafficBillingPeriodsCompanion Function({
+      Value<int> id,
+      Value<String?> label,
+      Value<int> startAt,
+      Value<int?> endAt,
+      Value<bool> autoMonthSwitch,
+      Value<int> createdAt,
+    });
+
+final class $$TrafficBillingPeriodsTableReferences
+    extends
+        BaseReferences<
+          _$Database,
+          $TrafficBillingPeriodsTable,
+          TrafficBillingPeriod
+        > {
+  $$TrafficBillingPeriodsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$TrafficHourlyStatsTable, List<TrafficHourlyStat>>
+  _trafficHourlyStatsRefsTable(_$Database db) => MultiTypedResultKey.fromTable(
+    db.trafficHourlyStats,
+    aliasName: $_aliasNameGenerator(
+      db.trafficBillingPeriods.id,
+      db.trafficHourlyStats.periodId,
+    ),
+  );
+
+  $$TrafficHourlyStatsTableProcessedTableManager get trafficHourlyStatsRefs {
+    final manager = $$TrafficHourlyStatsTableTableManager(
+      $_db,
+      $_db.trafficHourlyStats,
+    ).filter((f) => f.periodId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _trafficHourlyStatsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$TrafficBillingPeriodsTableFilterComposer
+    extends Composer<_$Database, $TrafficBillingPeriodsTable> {
+  $$TrafficBillingPeriodsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get startAt => $composableBuilder(
+    column: $table.startAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get endAt => $composableBuilder(
+    column: $table.endAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoMonthSwitch => $composableBuilder(
+    column: $table.autoMonthSwitch,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> trafficHourlyStatsRefs(
+    Expression<bool> Function($$TrafficHourlyStatsTableFilterComposer f) f,
+  ) {
+    final $$TrafficHourlyStatsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.trafficHourlyStats,
+      getReferencedColumn: (t) => t.periodId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TrafficHourlyStatsTableFilterComposer(
+            $db: $db,
+            $table: $db.trafficHourlyStats,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$TrafficBillingPeriodsTableOrderingComposer
+    extends Composer<_$Database, $TrafficBillingPeriodsTable> {
+  $$TrafficBillingPeriodsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get label => $composableBuilder(
+    column: $table.label,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get startAt => $composableBuilder(
+    column: $table.startAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get endAt => $composableBuilder(
+    column: $table.endAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get autoMonthSwitch => $composableBuilder(
+    column: $table.autoMonthSwitch,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TrafficBillingPeriodsTableAnnotationComposer
+    extends Composer<_$Database, $TrafficBillingPeriodsTable> {
+  $$TrafficBillingPeriodsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<int> get startAt =>
+      $composableBuilder(column: $table.startAt, builder: (column) => column);
+
+  GeneratedColumn<int> get endAt =>
+      $composableBuilder(column: $table.endAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get autoMonthSwitch => $composableBuilder(
+    column: $table.autoMonthSwitch,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> trafficHourlyStatsRefs<T extends Object>(
+    Expression<T> Function($$TrafficHourlyStatsTableAnnotationComposer a) f,
+  ) {
+    final $$TrafficHourlyStatsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.trafficHourlyStats,
+          getReferencedColumn: (t) => t.periodId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$TrafficHourlyStatsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.trafficHourlyStats,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
+}
+
+class $$TrafficBillingPeriodsTableTableManager
+    extends
+        RootTableManager<
+          _$Database,
+          $TrafficBillingPeriodsTable,
+          TrafficBillingPeriod,
+          $$TrafficBillingPeriodsTableFilterComposer,
+          $$TrafficBillingPeriodsTableOrderingComposer,
+          $$TrafficBillingPeriodsTableAnnotationComposer,
+          $$TrafficBillingPeriodsTableCreateCompanionBuilder,
+          $$TrafficBillingPeriodsTableUpdateCompanionBuilder,
+          (TrafficBillingPeriod, $$TrafficBillingPeriodsTableReferences),
+          TrafficBillingPeriod,
+          PrefetchHooks Function({bool trafficHourlyStatsRefs})
+        > {
+  $$TrafficBillingPeriodsTableTableManager(
+    _$Database db,
+    $TrafficBillingPeriodsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TrafficBillingPeriodsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$TrafficBillingPeriodsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$TrafficBillingPeriodsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                Value<int> startAt = const Value.absent(),
+                Value<int?> endAt = const Value.absent(),
+                Value<bool> autoMonthSwitch = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+              }) => TrafficBillingPeriodsCompanion(
+                id: id,
+                label: label,
+                startAt: startAt,
+                endAt: endAt,
+                autoMonthSwitch: autoMonthSwitch,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                required int startAt,
+                Value<int?> endAt = const Value.absent(),
+                Value<bool> autoMonthSwitch = const Value.absent(),
+                required int createdAt,
+              }) => TrafficBillingPeriodsCompanion.insert(
+                id: id,
+                label: label,
+                startAt: startAt,
+                endAt: endAt,
+                autoMonthSwitch: autoMonthSwitch,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$TrafficBillingPeriodsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({trafficHourlyStatsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (trafficHourlyStatsRefs) db.trafficHourlyStats,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (trafficHourlyStatsRefs)
+                    await $_getPrefetchedData<
+                      TrafficBillingPeriod,
+                      $TrafficBillingPeriodsTable,
+                      TrafficHourlyStat
+                    >(
+                      currentTable: table,
+                      referencedTable: $$TrafficBillingPeriodsTableReferences
+                          ._trafficHourlyStatsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$TrafficBillingPeriodsTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).trafficHourlyStatsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.periodId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$TrafficBillingPeriodsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$Database,
+      $TrafficBillingPeriodsTable,
+      TrafficBillingPeriod,
+      $$TrafficBillingPeriodsTableFilterComposer,
+      $$TrafficBillingPeriodsTableOrderingComposer,
+      $$TrafficBillingPeriodsTableAnnotationComposer,
+      $$TrafficBillingPeriodsTableCreateCompanionBuilder,
+      $$TrafficBillingPeriodsTableUpdateCompanionBuilder,
+      (TrafficBillingPeriod, $$TrafficBillingPeriodsTableReferences),
+      TrafficBillingPeriod,
+      PrefetchHooks Function({bool trafficHourlyStatsRefs})
+    >;
+typedef $$TrafficHourlyStatsTableCreateCompanionBuilder =
+    TrafficHourlyStatsCompanion Function({
+      required int periodId,
+      required int hourStart,
+      Value<String> appIdentifier,
+      Value<String> nodeName,
+      Value<String> domain,
+      Value<String> rule,
+      Value<int> bytesUp,
+      Value<int> bytesDown,
+      Value<double> multiplier,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$TrafficHourlyStatsTableUpdateCompanionBuilder =
+    TrafficHourlyStatsCompanion Function({
+      Value<int> periodId,
+      Value<int> hourStart,
+      Value<String> appIdentifier,
+      Value<String> nodeName,
+      Value<String> domain,
+      Value<String> rule,
+      Value<int> bytesUp,
+      Value<int> bytesDown,
+      Value<double> multiplier,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$TrafficHourlyStatsTableReferences
+    extends
+        BaseReferences<
+          _$Database,
+          $TrafficHourlyStatsTable,
+          TrafficHourlyStat
+        > {
+  $$TrafficHourlyStatsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $TrafficBillingPeriodsTable _periodIdTable(_$Database db) =>
+      db.trafficBillingPeriods.createAlias(
+        $_aliasNameGenerator(
+          db.trafficHourlyStats.periodId,
+          db.trafficBillingPeriods.id,
+        ),
+      );
+
+  $$TrafficBillingPeriodsTableProcessedTableManager get periodId {
+    final $_column = $_itemColumn<int>('period_id')!;
+
+    final manager = $$TrafficBillingPeriodsTableTableManager(
+      $_db,
+      $_db.trafficBillingPeriods,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_periodIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$TrafficHourlyStatsTableFilterComposer
+    extends Composer<_$Database, $TrafficHourlyStatsTable> {
+  $$TrafficHourlyStatsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get hourStart => $composableBuilder(
+    column: $table.hourStart,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get appIdentifier => $composableBuilder(
+    column: $table.appIdentifier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get nodeName => $composableBuilder(
+    column: $table.nodeName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get domain => $composableBuilder(
+    column: $table.domain,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rule => $composableBuilder(
+    column: $table.rule,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bytesUp => $composableBuilder(
+    column: $table.bytesUp,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get bytesDown => $composableBuilder(
+    column: $table.bytesDown,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get multiplier => $composableBuilder(
+    column: $table.multiplier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TrafficBillingPeriodsTableFilterComposer get periodId {
+    final $$TrafficBillingPeriodsTableFilterComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.periodId,
+          referencedTable: $db.trafficBillingPeriods,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$TrafficBillingPeriodsTableFilterComposer(
+                $db: $db,
+                $table: $db.trafficBillingPeriods,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$TrafficHourlyStatsTableOrderingComposer
+    extends Composer<_$Database, $TrafficHourlyStatsTable> {
+  $$TrafficHourlyStatsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get hourStart => $composableBuilder(
+    column: $table.hourStart,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get appIdentifier => $composableBuilder(
+    column: $table.appIdentifier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get nodeName => $composableBuilder(
+    column: $table.nodeName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get domain => $composableBuilder(
+    column: $table.domain,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rule => $composableBuilder(
+    column: $table.rule,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bytesUp => $composableBuilder(
+    column: $table.bytesUp,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get bytesDown => $composableBuilder(
+    column: $table.bytesDown,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get multiplier => $composableBuilder(
+    column: $table.multiplier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TrafficBillingPeriodsTableOrderingComposer get periodId {
+    final $$TrafficBillingPeriodsTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.periodId,
+          referencedTable: $db.trafficBillingPeriods,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$TrafficBillingPeriodsTableOrderingComposer(
+                $db: $db,
+                $table: $db.trafficBillingPeriods,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$TrafficHourlyStatsTableAnnotationComposer
+    extends Composer<_$Database, $TrafficHourlyStatsTable> {
+  $$TrafficHourlyStatsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get hourStart =>
+      $composableBuilder(column: $table.hourStart, builder: (column) => column);
+
+  GeneratedColumn<String> get appIdentifier => $composableBuilder(
+    column: $table.appIdentifier,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get nodeName =>
+      $composableBuilder(column: $table.nodeName, builder: (column) => column);
+
+  GeneratedColumn<String> get domain =>
+      $composableBuilder(column: $table.domain, builder: (column) => column);
+
+  GeneratedColumn<String> get rule =>
+      $composableBuilder(column: $table.rule, builder: (column) => column);
+
+  GeneratedColumn<int> get bytesUp =>
+      $composableBuilder(column: $table.bytesUp, builder: (column) => column);
+
+  GeneratedColumn<int> get bytesDown =>
+      $composableBuilder(column: $table.bytesDown, builder: (column) => column);
+
+  GeneratedColumn<double> get multiplier => $composableBuilder(
+    column: $table.multiplier,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$TrafficBillingPeriodsTableAnnotationComposer get periodId {
+    final $$TrafficBillingPeriodsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.periodId,
+          referencedTable: $db.trafficBillingPeriods,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$TrafficBillingPeriodsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.trafficBillingPeriods,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
+}
+
+class $$TrafficHourlyStatsTableTableManager
+    extends
+        RootTableManager<
+          _$Database,
+          $TrafficHourlyStatsTable,
+          TrafficHourlyStat,
+          $$TrafficHourlyStatsTableFilterComposer,
+          $$TrafficHourlyStatsTableOrderingComposer,
+          $$TrafficHourlyStatsTableAnnotationComposer,
+          $$TrafficHourlyStatsTableCreateCompanionBuilder,
+          $$TrafficHourlyStatsTableUpdateCompanionBuilder,
+          (TrafficHourlyStat, $$TrafficHourlyStatsTableReferences),
+          TrafficHourlyStat,
+          PrefetchHooks Function({bool periodId})
+        > {
+  $$TrafficHourlyStatsTableTableManager(
+    _$Database db,
+    $TrafficHourlyStatsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TrafficHourlyStatsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TrafficHourlyStatsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TrafficHourlyStatsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> periodId = const Value.absent(),
+                Value<int> hourStart = const Value.absent(),
+                Value<String> appIdentifier = const Value.absent(),
+                Value<String> nodeName = const Value.absent(),
+                Value<String> domain = const Value.absent(),
+                Value<String> rule = const Value.absent(),
+                Value<int> bytesUp = const Value.absent(),
+                Value<int> bytesDown = const Value.absent(),
+                Value<double> multiplier = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TrafficHourlyStatsCompanion(
+                periodId: periodId,
+                hourStart: hourStart,
+                appIdentifier: appIdentifier,
+                nodeName: nodeName,
+                domain: domain,
+                rule: rule,
+                bytesUp: bytesUp,
+                bytesDown: bytesDown,
+                multiplier: multiplier,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int periodId,
+                required int hourStart,
+                Value<String> appIdentifier = const Value.absent(),
+                Value<String> nodeName = const Value.absent(),
+                Value<String> domain = const Value.absent(),
+                Value<String> rule = const Value.absent(),
+                Value<int> bytesUp = const Value.absent(),
+                Value<int> bytesDown = const Value.absent(),
+                Value<double> multiplier = const Value.absent(),
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => TrafficHourlyStatsCompanion.insert(
+                periodId: periodId,
+                hourStart: hourStart,
+                appIdentifier: appIdentifier,
+                nodeName: nodeName,
+                domain: domain,
+                rule: rule,
+                bytesUp: bytesUp,
+                bytesDown: bytesDown,
+                multiplier: multiplier,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$TrafficHourlyStatsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({periodId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (periodId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.periodId,
+                                referencedTable:
+                                    $$TrafficHourlyStatsTableReferences
+                                        ._periodIdTable(db),
+                                referencedColumn:
+                                    $$TrafficHourlyStatsTableReferences
+                                        ._periodIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$TrafficHourlyStatsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$Database,
+      $TrafficHourlyStatsTable,
+      TrafficHourlyStat,
+      $$TrafficHourlyStatsTableFilterComposer,
+      $$TrafficHourlyStatsTableOrderingComposer,
+      $$TrafficHourlyStatsTableAnnotationComposer,
+      $$TrafficHourlyStatsTableCreateCompanionBuilder,
+      $$TrafficHourlyStatsTableUpdateCompanionBuilder,
+      (TrafficHourlyStat, $$TrafficHourlyStatsTableReferences),
+      TrafficHourlyStat,
+      PrefetchHooks Function({bool periodId})
+    >;
+typedef $$TrafficNodeMultipliersTableCreateCompanionBuilder =
+    TrafficNodeMultipliersCompanion Function({
+      required String nodeName,
+      Value<double> parsedMultiplier,
+      Value<double?> manualMultiplier,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$TrafficNodeMultipliersTableUpdateCompanionBuilder =
+    TrafficNodeMultipliersCompanion Function({
+      Value<String> nodeName,
+      Value<double> parsedMultiplier,
+      Value<double?> manualMultiplier,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$TrafficNodeMultipliersTableFilterComposer
+    extends Composer<_$Database, $TrafficNodeMultipliersTable> {
+  $$TrafficNodeMultipliersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get nodeName => $composableBuilder(
+    column: $table.nodeName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get parsedMultiplier => $composableBuilder(
+    column: $table.parsedMultiplier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get manualMultiplier => $composableBuilder(
+    column: $table.manualMultiplier,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$TrafficNodeMultipliersTableOrderingComposer
+    extends Composer<_$Database, $TrafficNodeMultipliersTable> {
+  $$TrafficNodeMultipliersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get nodeName => $composableBuilder(
+    column: $table.nodeName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get parsedMultiplier => $composableBuilder(
+    column: $table.parsedMultiplier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get manualMultiplier => $composableBuilder(
+    column: $table.manualMultiplier,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$TrafficNodeMultipliersTableAnnotationComposer
+    extends Composer<_$Database, $TrafficNodeMultipliersTable> {
+  $$TrafficNodeMultipliersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get nodeName =>
+      $composableBuilder(column: $table.nodeName, builder: (column) => column);
+
+  GeneratedColumn<double> get parsedMultiplier => $composableBuilder(
+    column: $table.parsedMultiplier,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get manualMultiplier => $composableBuilder(
+    column: $table.manualMultiplier,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$TrafficNodeMultipliersTableTableManager
+    extends
+        RootTableManager<
+          _$Database,
+          $TrafficNodeMultipliersTable,
+          TrafficNodeMultiplier,
+          $$TrafficNodeMultipliersTableFilterComposer,
+          $$TrafficNodeMultipliersTableOrderingComposer,
+          $$TrafficNodeMultipliersTableAnnotationComposer,
+          $$TrafficNodeMultipliersTableCreateCompanionBuilder,
+          $$TrafficNodeMultipliersTableUpdateCompanionBuilder,
+          (
+            TrafficNodeMultiplier,
+            BaseReferences<
+              _$Database,
+              $TrafficNodeMultipliersTable,
+              TrafficNodeMultiplier
+            >,
+          ),
+          TrafficNodeMultiplier,
+          PrefetchHooks Function()
+        > {
+  $$TrafficNodeMultipliersTableTableManager(
+    _$Database db,
+    $TrafficNodeMultipliersTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TrafficNodeMultipliersTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$TrafficNodeMultipliersTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$TrafficNodeMultipliersTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> nodeName = const Value.absent(),
+                Value<double> parsedMultiplier = const Value.absent(),
+                Value<double?> manualMultiplier = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TrafficNodeMultipliersCompanion(
+                nodeName: nodeName,
+                parsedMultiplier: parsedMultiplier,
+                manualMultiplier: manualMultiplier,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String nodeName,
+                Value<double> parsedMultiplier = const Value.absent(),
+                Value<double?> manualMultiplier = const Value.absent(),
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => TrafficNodeMultipliersCompanion.insert(
+                nodeName: nodeName,
+                parsedMultiplier: parsedMultiplier,
+                manualMultiplier: manualMultiplier,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TrafficNodeMultipliersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$Database,
+      $TrafficNodeMultipliersTable,
+      TrafficNodeMultiplier,
+      $$TrafficNodeMultipliersTableFilterComposer,
+      $$TrafficNodeMultipliersTableOrderingComposer,
+      $$TrafficNodeMultipliersTableAnnotationComposer,
+      $$TrafficNodeMultipliersTableCreateCompanionBuilder,
+      $$TrafficNodeMultipliersTableUpdateCompanionBuilder,
+      (
+        TrafficNodeMultiplier,
+        BaseReferences<
+          _$Database,
+          $TrafficNodeMultipliersTable,
+          TrafficNodeMultiplier
+        >,
+      ),
+      TrafficNodeMultiplier,
+      PrefetchHooks Function()
+    >;
 
 class $DatabaseManager {
   final _$Database _db;
@@ -5781,6 +8176,15 @@ class $DatabaseManager {
       $$ProxyGroupsTableTableManager(_db, _db.proxyGroups);
   $$IconRecordsTableTableManager get iconRecords =>
       $$IconRecordsTableTableManager(_db, _db.iconRecords);
+  $$TrafficBillingPeriodsTableTableManager get trafficBillingPeriods =>
+      $$TrafficBillingPeriodsTableTableManager(_db, _db.trafficBillingPeriods);
+  $$TrafficHourlyStatsTableTableManager get trafficHourlyStats =>
+      $$TrafficHourlyStatsTableTableManager(_db, _db.trafficHourlyStats);
+  $$TrafficNodeMultipliersTableTableManager get trafficNodeMultipliers =>
+      $$TrafficNodeMultipliersTableTableManager(
+        _db,
+        _db.trafficNodeMultipliers,
+      );
 }
 
 mixin _$ProfilesDaoMixin on DatabaseAccessor<Database> {
@@ -5854,4 +8258,34 @@ class IconRecordsDaoManager {
   IconRecordsDaoManager(this._db);
   $$IconRecordsTableTableManager get iconRecords =>
       $$IconRecordsTableTableManager(_db.attachedDatabase, _db.iconRecords);
+}
+
+mixin _$TrafficLedgerDaoMixin on DatabaseAccessor<Database> {
+  $TrafficBillingPeriodsTable get trafficBillingPeriods =>
+      attachedDatabase.trafficBillingPeriods;
+  $TrafficHourlyStatsTable get trafficHourlyStats =>
+      attachedDatabase.trafficHourlyStats;
+  $TrafficNodeMultipliersTable get trafficNodeMultipliers =>
+      attachedDatabase.trafficNodeMultipliers;
+  TrafficLedgerDaoManager get managers => TrafficLedgerDaoManager(this);
+}
+
+class TrafficLedgerDaoManager {
+  final _$TrafficLedgerDaoMixin _db;
+  TrafficLedgerDaoManager(this._db);
+  $$TrafficBillingPeriodsTableTableManager get trafficBillingPeriods =>
+      $$TrafficBillingPeriodsTableTableManager(
+        _db.attachedDatabase,
+        _db.trafficBillingPeriods,
+      );
+  $$TrafficHourlyStatsTableTableManager get trafficHourlyStats =>
+      $$TrafficHourlyStatsTableTableManager(
+        _db.attachedDatabase,
+        _db.trafficHourlyStats,
+      );
+  $$TrafficNodeMultipliersTableTableManager get trafficNodeMultipliers =>
+      $$TrafficNodeMultipliersTableTableManager(
+        _db.attachedDatabase,
+        _db.trafficNodeMultipliers,
+      );
 }

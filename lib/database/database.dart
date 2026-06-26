@@ -17,6 +17,7 @@ part 'links.dart';
 part 'profiles.dart';
 part 'rules.dart';
 part 'scripts.dart';
+part 'traffic_ledger.dart';
 
 @DriftDatabase(
   tables: [
@@ -26,14 +27,24 @@ part 'scripts.dart';
     ProfileRuleLinks,
     ProxyGroups,
     IconRecords,
+    TrafficBillingPeriods,
+    TrafficHourlyStats,
+    TrafficNodeMultipliers,
   ],
-  daos: [ProfilesDao, ScriptsDao, RulesDao, ProxyGroupsDao, IconRecordsDao],
+  daos: [
+    ProfilesDao,
+    ScriptsDao,
+    RulesDao,
+    ProxyGroupsDao,
+    IconRecordsDao,
+    TrafficLedgerDao,
+  ],
 )
 class Database extends _$Database {
   Database([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   static LazyDatabase _openConnection() {
     return LazyDatabase(() async {
@@ -51,6 +62,15 @@ class Database extends _$Database {
           await m.createTable(iconRecords);
           await _resetOrders();
           await _migrateRules(m);
+        }
+        if (from < 3) {
+          // Traffic Ledger: 计费周期、小时聚合流量、节点倍率。
+          await m.createTable(trafficBillingPeriods);
+          await m.createTable(trafficHourlyStats);
+          await m.createTable(trafficNodeMultipliers);
+          await m.createIndex(idxTrafficPeriodHour);
+          await m.createIndex(idxTrafficApp);
+          await m.createIndex(idxTrafficNode);
         }
       },
       beforeOpen: (details) async {
