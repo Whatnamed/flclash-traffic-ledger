@@ -1,3 +1,5 @@
+import 'dart:io'; // DIAGNOSTIC-TEMP: 文件日志
+
 import 'package:fl_clash/core/controller.dart';
 import 'package:fl_clash/models/models.dart';
 import 'package:fl_clash/traffic_ledger/collection/app_identifier.dart';
@@ -7,6 +9,7 @@ import 'package:fl_clash/traffic_ledger/collection/reconciler.dart';
 import 'package:fl_clash/traffic_ledger/collection/traffic_diagnostics.dart';
 import 'package:fl_clash/traffic_ledger/multiplier_parser.dart';
 import 'package:fl_clash/traffic_ledger/node_multiplier_service.dart';
+import 'package:flutter/foundation.dart'; // DIAGNOSTIC-TEMP: kDebugMode
 
 /// 采样数据源接口。负责从核心获取一次原始采样。
 ///
@@ -66,6 +69,12 @@ class CoreControllerSampleSource implements TrafficSampleSource {
           rawConnections: connections,
         );
       }
+      // DIAGNOSTIC-TEMP: reconciliation overflow root cause probe.
+      // 输出脱敏聚合统计，定位 observed ≈ 2× total 的根因。
+      // 验收后恢复（搜索 DIAGNOSTIC-TEMP 移除整块）。
+      if (kDebugMode) {
+        _emitDiagnosticLog(connections, totalTraffic);
+      }
       return TrafficSample(
         observedAt: observedAt,
         totalProxyUp: totalTraffic.up.toInt(),
@@ -76,6 +85,58 @@ class CoreControllerSampleSource implements TrafficSampleSource {
       // 核心未就绪、IPC 失败、JSON 解析失败等：返回 null，跳过本次采样。
       return null;
     }
+  }
+
+  /// DIAGNOSTIC-TEMP: 脱敏诊断日志。
+  /// 输出连接快照结构统计，不输出原始 id/host/ip/port/node/process。
+  static void _emitDiagnosticLog(
+    List<TrackerInfo> connections,
+    Traffic totalTraffic,
+  ) {
+    final total = connections.length;
+    final proxyConns = connections.where((c) {
+      final chains = c.chains;
+      return chains.isNotEmpty && !(chains.length == 1 && chains.first == 'DIRECT');
+    }).toList();
+    final proxyCount = proxyConns.length;
+    final idCounts = <String, int>{};
+    for (final c in proxyConns) {
+      idCounts[c.id] = (idCounts[c.id] ?? 0) + 1;
+    }
+    final uniqueIdCount = idCounts.length;
+    final dupIdEntries = idCounts.values.where((v) => v > 1).fold<int>(0, (a, b) => a + b);
+    final dupIdGroups = idCounts.values.where((v) => v > 1).length;
+    final dupSizeDist = <int, int>{};
+    for (final v in idCounts.values.where((v) => v > 1)) {
+      dupSizeDist[v] = (dupSizeDist[v] ?? 0) + 1;
+    }
+    // 脱敏指纹：network/进程是否存在/chain长度
+    final fingerprintCounts = <String, int>{};
+    for (final c in proxyConns) {
+      final hasProcess = c.metadata.process.isNotEmpty ? 'P1' : 'P0';
+      final net = c.metadata.network.isEmpty ? 'N?' : c.metadata.network;
+      final chainLen = c.chains.length.toString();
+      final fp = '$net|chain$chainLen|$hasProcess';
+      fingerprintCounts[fp] = (fingerprintCounts[fp] ?? 0) + 1;
+    }
+    // 连接级 upload/download 累加（与核心 totalProxy 对比）
+    int sumConnUp = 0;
+    int sumConnDown = 0;
+    for (final c in proxyConns) {
+      sumConnUp += c.upload;
+      sumConnDown += c.download;
+    }
+    final line = '[DIAG-SAMPLE] total=$total proxy=$proxyCount '
+        'uniqueId=$uniqueIdCount dupEntries=$dupIdEntries dupGroups=$dupIdGroups '
+        'dupSizeDist=$dupSizeDist '
+        'totalUp=${totalTraffic.up} totalDown=${totalTraffic.down} '
+        'sumConnUp=$sumConnUp sumConnDown=$sumConnDown '
+        'fingerprints=$fingerprintCounts\n';
+    // DIAGNOSTIC-TEMP: 写文件绕过 stdout 缓冲，验收后恢复
+    try {
+      final logFile = File(r'C:\Users\hasee\diag_sample.log');
+      logFile.writeAsStringSync(line, mode: FileMode.append);
+    } catch (_) {}
   }
 
   /// 将 [TrackerInfo] 转为 [ConnectionSnapshot]。
