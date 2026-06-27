@@ -67,12 +67,23 @@ class Database extends _$Database {
         }
         if (from < 3) {
           // Traffic Ledger: 计费周期、小时聚合流量、节点倍率。
+          // 使用 IF NOT EXISTS 防止历史残留索引导致迁移失败
+          // （开发版数据库可能因中断迁移残留部分索引对象）。
           await m.createTable(trafficBillingPeriods);
           await m.createTable(trafficHourlyStats);
           await m.createTable(trafficNodeMultipliers);
-          await m.createIndex(idxTrafficPeriodHour);
-          await m.createIndex(idxTrafficApp);
-          await m.createIndex(idxTrafficNode);
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_traffic_period_hour '
+            'ON traffic_hourly_stats (period_id, hour_start)',
+          );
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_traffic_app '
+            'ON traffic_hourly_stats (period_id, app_identifier)',
+          );
+          await customStatement(
+            'CREATE INDEX IF NOT EXISTS idx_traffic_node '
+            'ON traffic_hourly_stats (period_id, node_name)',
+          );
         }
         if (from < 4) {
           // Stage 2.1 修正：
